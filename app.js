@@ -367,7 +367,23 @@ class QuantumLab {
         const qubitIndex = Math.floor(y / qubitHeight);
         
         if (qubitIndex >= 0 && qubitIndex < this.numQubits) {
-            this.addGateToCircuit(this.draggedGate.name, [qubitIndex]);
+            // Check if this is a multi-qubit gate
+            const multiQubitGates = ['CNOT', 'CZ', 'SWAP'];
+            
+            if (multiQubitGates.includes(this.draggedGate.name)) {
+                // For multi-qubit gates, we need at least 2 qubits
+                if (this.numQubits >= 2) {
+                    // Default to using first two qubits for now
+                    // TODO: Allow user to select target qubits
+                    const targetQubits = [0, 1]; // Control on qubit 0, target on qubit 1
+                    this.addGateToCircuit(this.draggedGate.name, targetQubits);
+                } else {
+                    this.showError('Multi-qubit gates require at least 2 qubits');
+                }
+            } else {
+                // Single qubit gate
+                this.addGateToCircuit(this.draggedGate.name, [qubitIndex]);
+            }
         }
         
         this.draggedGate = null;
