@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumLab - Quantum Computing Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1><i class="fas fa-atom"></i> QuantumLab</h1>
+            <p>Interactive Quantum Computing Simulator</p>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="workspace">
+                <!-- Left Panel - Gate Library -->
+                <aside class="gate-library">
+                    <h2>Quantum Gates</h2>
+                    <div class="gate-categories">
+                        <div class="category">
+                            <h3>Single Qubit Gates</h3>
+                            <div class="gates">
+                                <div class="gate" data-gate="H" draggable="true">
+                                    <span class="gate-symbol">H</span>
+                                    <span class="gate-name">Hadamard</span>
+                                </div>
+                                <div class="gate" data-gate="X" draggable="true">
+                                    <span class="gate-symbol">X</span>
+                                    <span class="gate-name">Pauli-X</span>
+                                </div>
+                                <div class="gate" data-gate="Y" draggable="true">
+                                    <span class="gate-symbol">Y</span>
+                                    <span class="gate-name">Pauli-Y</span>
+                                </div>
+                                <div class="gate" data-gate="Z" draggable="true">
+                                    <span class="gate-symbol">Z</span>
+                                    <span class="gate-name">Pauli-Z</span>
+                                </div>
+                                <div class="gate" data-gate="S" draggable="true">
+                                    <span class="gate-symbol">S</span>
+                                    <span class="gate-name">Phase</span>
+                                </div>
+                                <div class="gate" data-gate="T" draggable="true">
+                                    <span class="gate-symbol">T</span>
+                                    <span class="gate-name">T-Gate</span>
+                                </div>
+                                <div class="gate" data-gate="RX" draggable="true">
+                                    <span class="gate-symbol">Rx</span>
+                                    <span class="gate-name">Rotation-X</span>
+                                </div>
+                                <div class="gate" data-gate="RY" draggable="true">
+                                    <span class="gate-symbol">Ry</span>
+                                    <span class="gate-name">Rotation-Y</span>
+                                </div>
+                                <div class="gate" data-gate="RZ" draggable="true">
+                                    <span class="gate-symbol">Rz</span>
+                                    <span class="gate-name">Rotation-Z</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category">
+                            <h3>Multi-Qubit Gates</h3>
+                            <div class="gates">
+                                <div class="gate" data-gate="CNOT" draggable="true">
+                                    <span class="gate-symbol">CNOT</span>
+                                    <span class="gate-name">Controlled-NOT</span>
+                                </div>
+                                <div class="gate" data-gate="CZ" draggable="true">
+                                    <span class="gate-symbol">CZ</span>
+                                    <span class="gate-name">Controlled-Z</span>
+                                </div>
+                                <div class="gate" data-gate="SWAP" draggable="true">
+                                    <span class="gate-symbol">SWAP</span>
+                                    <span class="gate-name">SWAP</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Center Panel - Circuit Builder -->
+                <section class="circuit-builder">
+                    <div class="circuit-header">
+                        <h2>Quantum Circuit</h2>
+                        <div class="controls">
+                            <button id="add-qubit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Qubit
+                            </button>
+                            <button id="clear-circuit" class="btn btn-secondary">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                            <button id="run-circuit" class="btn btn-success">
+                                <i class="fas fa-play"></i> Run Circuit
+                            </button>
+                        </div>
+                    </div>
+                    <div class="circuit-workspace" id="circuit-workspace">
+                        <!-- Qubits will be added here dynamically -->
+                    </div>
+                </section>
+
+                <!-- Right Panel - Visualization & Results -->
+                <aside class="visualization-panel">
+                    <h2>Visualization</h2>
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="state-vector">State Vector</button>
+                        <button class="tab-btn" data-tab="bloch-sphere">Bloch Sphere</button>
+                        <button class="tab-btn" data-tab="probabilities">Probabilities</button>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="state-vector">
+                            <canvas id="state-vector-canvas" width="300" height="200"></canvas>
+                            <div class="state-info">
+                                <h3>Quantum State</h3>
+                                <div id="state-display">|ψ⟩ = |0⟩</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane" id="bloch-sphere">
+                            <canvas id="bloch-sphere-canvas" width="300" height="300"></canvas>
+                        </div>
+                        <div class="tab-pane" id="probabilities">
+                            <canvas id="probabilities-canvas" width="300" height="200"></canvas>
+                            <div class="probability-info">
+                                <h3>Measurement Probabilities</h3>
+                                <div id="probability-display"></div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Algorithm Examples Section -->
+            <section class="algorithm-examples">
+                <h2>Quantum Algorithms</h2>
+                <div class="algorithm-grid">
+                    <div class="algorithm-card" data-algorithm="deutsch-jozsa">
+                        <h3>Deutsch-Jozsa</h3>
+                        <p>Determine if a function is constant or balanced</p>
+                        <button class="btn btn-outline">Load Algorithm</button>
+                    </div>
+                    <div class="algorithm-card" data-algorithm="grover">
+                        <h3>Grover's Search</h3>
+                        <p>Quantum search algorithm for unsorted databases</p>
+                        <button class="btn btn-outline">Load Algorithm</button>
+                    </div>
+                    <div class="algorithm-card" data-algorithm="quantum-fourier">
+                        <h3>Quantum Fourier Transform</h3>
+                        <p>Quantum version of discrete Fourier transform</p>
+                        <button class="btn btn-outline">Load Algorithm</button>
+                    </div>
+                    <div class="algorithm-card" data-algorithm="teleportation">
+                        <h3>Quantum Teleportation</h3>
+                        <p>Transfer quantum state between qubits</p>
+                        <button class="btn btn-outline">Load Algorithm</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance Benchmarking -->
+            <section class="benchmarking">
+                <h2>Performance Benchmarking</h2>
+                <div class="benchmark-controls">
+                    <button id="run-benchmark" class="btn btn-primary">Run Benchmarks</button>
+                    <div class="benchmark-results">
+                        <canvas id="benchmark-chart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 QuantumLab - Educational Quantum Computing Simulator</p>
+        </div>
+    </footer>
+
+    <script src="quantum-core.js"></script>
+    <script src="quantum-gates.js"></script>
+    <script src="quantum-simulator.js"></script>
+    <script src="visualization.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
