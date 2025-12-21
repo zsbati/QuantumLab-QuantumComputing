@@ -270,7 +270,35 @@ class QuantumLab {
             this.circuit.circuit.state = newState.clone();
         }
         this.updateStateDisplay();
+        this.updateProbabilityDisplay();
         this.showNotification('Input state set successfully', 'success');
+    }
+    
+    updateProbabilityDisplay() {
+        const probabilityDisplay = document.getElementById('probability-display');
+        if (this.circuit && this.circuit.state) {
+            const amplitudes = this.circuit.state.amplitudes;
+            console.log('updateProbabilityDisplay - amplitudes:', amplitudes.map(a => a.toString()));
+            console.log('updateProbabilityDisplay - magnitudes:', amplitudes.map(a => a.magnitude()));
+            
+            let probHTML = '';
+            amplitudes.forEach((amp, i) => {
+                const prob = amp.magnitude() ** 2;
+                console.log(`State |${i.toString(2).padStart(this.numQubits, '0')}⟩: amplitude=${amp.toString()}, magnitude=${amp.magnitude()}, probability=${prob}`);
+                if (prob > 0.0001) { // Lower threshold
+                    const bitString = i.toString(2).padStart(this.numQubits, '0');
+                    probHTML += `<div>|${bitString}⟩: ${(prob * 100).toFixed(2)}% (amplitude: ${amp.real.toFixed(3)}${amp.imag >= 0 ? '+' : ''}${amp.imag.toFixed(3)}i)</div>`;
+                }
+            });
+            
+            // Fallback if no probabilities shown
+            if (probHTML === '') {
+                probHTML = '<div>No significant probabilities found</div>';
+            }
+            
+            console.log('Final probHTML:', probHTML);
+            probabilityDisplay.innerHTML = probHTML;
+        }
     }
     
     setPresetState(qubitIndex, state) {
@@ -625,6 +653,7 @@ class QuantumLab {
     }
     
     displayResults(result) {
+        console.log('=== DISPLAY RESULTS START ===');
         console.log('Displaying results:', result);
         console.log('Final state type:', typeof result.finalState);
         console.log('Final state has getStateVector:', typeof result.finalState.getStateVector);
@@ -640,16 +669,28 @@ class QuantumLab {
         const probabilityDisplay = document.getElementById('probability-display');
         if (result.finalState) {
             const amplitudes = result.finalState.amplitudes;
+            console.log('Probability calculation - amplitudes:', amplitudes.map(a => a.toString()));
+            console.log('Probability calculation - magnitudes:', amplitudes.map(a => a.magnitude()));
             
             let probHTML = '';
             amplitudes.forEach((amp, i) => {
                 const prob = amp.magnitude() ** 2;
-                if (prob > 0.001) { // Show smaller probabilities too
+                console.log(`State |${i.toString(2).padStart(this.numQubits, '0')}⟩: amplitude=${amp.toString()}, magnitude=${amp.magnitude()}, probability=${prob}`);
+                if (prob > 0.0001) { // Lower threshold
                     const bitString = i.toString(2).padStart(this.numQubits, '0');
                     probHTML += `<div>|${bitString}⟩: ${(prob * 100).toFixed(2)}% (amplitude: ${amp.real.toFixed(3)}${amp.imag >= 0 ? '+' : ''}${amp.imag.toFixed(3)}i)</div>`;
                 }
             });
+            
+            // Fallback if no probabilities shown
+            if (probHTML === '') {
+                probHTML = '<div>No significant probabilities found</div>';
+            }
+            
+            console.log('Final probHTML:', probHTML);
+            console.log('Probability display element:', probabilityDisplay);
             probabilityDisplay.innerHTML = probHTML;
+            console.log('After setting innerHTML');
         }
         
         // Update visualizations with final state
@@ -812,7 +853,7 @@ class QuantumLab {
     }
     
     refreshActiveVisualization(tabName) {
-        const stateVector = this.circuit.getStateVector();
+        const stateVector = this.circuit.state.amplitudes;
         
         switch (tabName) {
             case 'state-vector':
