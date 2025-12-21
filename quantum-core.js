@@ -61,9 +61,9 @@ class Complex {
         } else if (Math.abs(this.real) < 1e-10) {
             return `${this.imag.toFixed(4)}i`;
         } else if (this.imag >= 0) {
-            return `${this.real.toFixed(4)} + ${this.imag.toFixed(4)}i`;
+            return `(${this.real.toFixed(4)} + ${this.imag.toFixed(4)}i)`;
         } else {
-            return `${this.real.toFixed(4)} - ${Math.abs(this.imag).toFixed(4)}i`;
+            return `(${this.real.toFixed(4)} - ${Math.abs(this.imag).toFixed(4)}i)`;
         }
     }
 }

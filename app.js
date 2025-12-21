@@ -324,7 +324,7 @@ class QuantumLab {
     updateStateDisplay() {
         const stateDisplay = document.getElementById('state-display');
         if (this.circuit && this.circuit.state) {
-            stateDisplay.textContent = `|ψ⟩ = ${this.circuit.state.toString()}`;
+            stateDisplay.textContent = this.circuit.state.toString();
         }
     }
     
