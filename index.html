@@ -17,9 +17,61 @@
 
     <main class="main">
         <div class="container">
-            <div class="workspace">
-                <!-- Left Panel - Gate Library -->
-                <aside class="gate-library">
+            <!-- Row 1: Input State Configuration + Visualization -->
+            <div class="row-1">
+                <div class="input-state-panel">
+                    <h2>Input State Configuration</h2>
+                    <div id="input-state-form">
+                        <!-- Input state controls will be here -->
+                    </div>
+                </div>
+                <div class="visualization-panel">
+                    <h2>Visualization</h2>
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="state-vector">State Vector</button>
+                        <button class="tab-btn" data-tab="bloch-sphere">Bloch Sphere</button>
+                        <button class="tab-btn" data-tab="probabilities">Probabilities</button>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="state-vector">
+                            <canvas id="state-vector-canvas" width="300" height="200"></canvas>
+                            <div class="state-info">
+                                <h3>Quantum State</h3>
+                                <div id="state-display">|ψ⟩ = |0⟩</div>
+                            </div>
+                        </div>
+                        <div class="tab-pane" id="bloch-sphere">
+                            <canvas id="bloch-sphere-canvas" width="300" height="300"></canvas>
+                        </div>
+                        <div class="tab-pane" id="probabilities">
+                            <canvas id="probabilities-canvas" width="300" height="200"></canvas>
+                            <div class="probability-info">
+                                <h3>Measurement Probabilities</h3>
+                                <div id="probability-display"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Controls -->
+            <div class="row-2">
+                <div class="control-panel">
+                    <button id="add-qubit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Qubit
+                    </button>
+                    <button id="clear-circuit" class="btn btn-secondary">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                    <button id="run-circuit" class="btn btn-success">
+                        <i class="fas fa-play"></i> Run Circuit
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 3: Circuit Builder + Gate Library -->
+            <div class="row-3">
+                <div class="gate-library">
                     <h2>Quantum Gates</h2>
                     <div class="gate-categories">
                         <div class="category">
@@ -81,57 +133,13 @@
                             </div>
                         </div>
                     </div>
-                </aside>
-
-                <!-- Center Panel - Circuit Builder -->
-                <section class="circuit-builder">
-                    <div class="circuit-header">
-                        <h2>Quantum Circuit</h2>
-                        <div class="controls">
-                            <button id="add-qubit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Add Qubit
-                            </button>
-                            <button id="clear-circuit" class="btn btn-secondary">
-                                <i class="fas fa-trash"></i> Clear
-                            </button>
-                            <button id="run-circuit" class="btn btn-success">
-                                <i class="fas fa-play"></i> Run Circuit
-                            </button>
-                        </div>
-                    </div>
+                </div>
+                <div class="circuit-builder">
+                    <h2>Quantum Circuit</h2>
                     <div class="circuit-workspace" id="circuit-workspace">
                         <!-- Qubits will be added here dynamically -->
                     </div>
-                </section>
-
-                <!-- Right Panel - Visualization & Results -->
-                <aside class="visualization-panel">
-                    <h2>Visualization</h2>
-                    <div class="tabs">
-                        <button class="tab-btn active" data-tab="state-vector">State Vector</button>
-                        <button class="tab-btn" data-tab="bloch-sphere">Bloch Sphere</button>
-                        <button class="tab-btn" data-tab="probabilities">Probabilities</button>
-                    </div>
-                    <div class="tab-content">
-                        <div class="tab-pane active" id="state-vector">
-                            <canvas id="state-vector-canvas" width="300" height="200"></canvas>
-                            <div class="state-info">
-                                <h3>Quantum State</h3>
-                                <div id="state-display">|ψ⟩ = |0⟩</div>
-                            </div>
-                        </div>
-                        <div class="tab-pane" id="bloch-sphere">
-                            <canvas id="bloch-sphere-canvas" width="300" height="300"></canvas>
-                        </div>
-                        <div class="tab-pane" id="probabilities">
-                            <canvas id="probabilities-canvas" width="300" height="200"></canvas>
-                            <div class="probability-info">
-                                <h3>Measurement Probabilities</h3>
-                                <div id="probability-display"></div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
+                </div>
             </div>
 
             <!-- Algorithm Examples Section -->

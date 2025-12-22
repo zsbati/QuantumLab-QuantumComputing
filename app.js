@@ -96,68 +96,61 @@ class QuantumLab {
     }
     
     setupInputStateControls() {
-        // Add input state controls to the circuit header
-        const circuitHeader = document.querySelector('.circuit-header');
+        // Add input state controls to the dedicated input state panel
+        const inputStatePanel = document.getElementById('input-state-form');
         
-        const inputStateDiv = document.createElement('div');
-        inputStateDiv.style.background = '#f8fafc';
-        inputStateDiv.style.border = '1px solid #e2e8f0';
-        inputStateDiv.style.borderRadius = '8px';
-        inputStateDiv.style.padding = '1rem';
-        inputStateDiv.style.marginBottom = '1rem';
-        inputStateDiv.innerHTML = `
-            <h4>Input State Configuration</h4>
-            <div class="qubit-inputs">
-                <div class="qubit-input" data-qubit="0">
-                    <label>Qubit 0:</label>
-                    <div class="basis-controls">
-                        <div class="basis-state">
-                            <label for="qubit-0-0">|0⟩ amplitude:</label>
-                            <input type="text" id="qubit-0-0" name="qubit-0-0" class="complex-input" data-qubit="0" data-basis="0" value="1" placeholder="a+bi">
+        if (inputStatePanel) {
+            inputStatePanel.innerHTML = `
+                <div class="qubit-inputs">
+                    <div class="qubit-input" data-qubit="0">
+                        <label>Qubit 0:</label>
+                        <div class="basis-controls">
+                            <div class="basis-state">
+                                <label for="qubit-0-0">|0⟩ amplitude:</label>
+                                <input type="text" id="qubit-0-0" name="qubit-0-0" class="complex-input" data-qubit="0" data-basis="0" value="1" placeholder="a+bi">
+                            </div>
+                            <div class="basis-state">
+                                <label for="qubit-0-1">|1⟩ amplitude:</label>
+                                <input type="text" id="qubit-0-1" name="qubit-0-1" class="complex-input" data-qubit="0" data-basis="1" value="0" placeholder="a+bi">
+                            </div>
                         </div>
-                        <div class="basis-state">
-                            <label for="qubit-0-1">|1⟩ amplitude:</label>
-                            <input type="text" id="qubit-0-1" name="qubit-0-1" class="complex-input" data-qubit="0" data-basis="1" value="0" placeholder="a+bi">
+                        <div class="preset-states">
+                            <button class="preset-btn" data-qubit="0" data-state="|0⟩">|0⟩</button>
+                            <button class="preset-btn" data-qubit="0" data-state="|1⟩">|1⟩</button>
+                            <button class="preset-btn" data-qubit="0" data-state="|+⟩">|+⟩</button>
+                            <button class="preset-btn" data-qubit="0" data-state="|-⟩">|-⟩</button>
                         </div>
                     </div>
-                    <div class="preset-states">
-                        <button class="preset-btn" data-qubit="0" data-state="|0⟩">|0⟩</button>
-                        <button class="preset-btn" data-qubit="0" data-state="|1⟩">|1⟩</button>
-                        <button class="preset-btn" data-qubit="0" data-state="|+⟩">|+⟩</button>
-                        <button class="preset-btn" data-qubit="0" data-state="|-⟩">|-⟩</button>
+                    <div class="qubit-input" data-qubit="1">
+                        <label>Qubit 1:</label>
+                        <div class="basis-controls">
+                            <div class="basis-state">
+                                <label for="qubit-1-0">|0⟩ amplitude:</label>
+                                <input type="text" id="qubit-1-0" name="qubit-1-0" class="complex-input" data-qubit="1" data-basis="0" value="1" placeholder="a+bi">
+                            </div>
+                            <div class="basis-state">
+                                <label for="qubit-1-1">|1⟩ amplitude:</label>
+                                <input type="text" id="qubit-1-1" name="qubit-1-1" class="complex-input" data-qubit="1" data-basis="1" value="0" placeholder="a+bi">
+                            </div>
+                        </div>
+                        <div class="preset-states">
+                            <button class="preset-btn" data-qubit="1" data-state="|0⟩">|0⟩</button>
+                            <button class="preset-btn" data-qubit="1" data-state="|1⟩">|1⟩</button>
+                            <button class="preset-btn" data-qubit="1" data-state="|+⟩">|+⟩</button>
+                            <button class="preset-btn" data-qubit="1" data-state="|-⟩">|-⟩</button>
+                        </div>
                     </div>
                 </div>
-                <div class="qubit-input" data-qubit="1">
-                    <label>Qubit 1:</label>
-                    <div class="basis-controls">
-                        <div class="basis-state">
-                            <label for="qubit-1-0">|0⟩ amplitude:</label>
-                            <input type="text" id="qubit-1-0" name="qubit-1-0" class="complex-input" data-qubit="1" data-basis="0" value="1" placeholder="a+bi">
-                        </div>
-                        <div class="basis-state">
-                            <label for="qubit-1-1">|1⟩ amplitude:</label>
-                            <input type="text" id="qubit-1-1" name="qubit-1-1" class="complex-input" data-qubit="1" data-basis="1" value="0" placeholder="a+bi">
-                        </div>
-                    </div>
-                    <div class="preset-states">
-                        <button class="preset-btn" data-qubit="1" data-state="|0⟩">|0⟩</button>
-                        <button class="preset-btn" data-qubit="1" data-state="|1⟩">|1⟩</button>
-                        <button class="preset-btn" data-qubit="1" data-state="|+⟩">|+⟩</button>
-                        <button class="preset-btn" data-qubit="1" data-state="|-⟩">|-⟩</button>
-                    </div>
+                <div class="input-actions">
+                    <button id="set-input-state" class="btn btn-primary">Set Input State</button>
+                    <button id="reset-input-state" class="btn btn-secondary">Reset to |00⟩</button>
+                    <button id="random-input-state" class="btn btn-outline">Random State</button>
                 </div>
-            </div>
-            <div class="input-actions">
-                <button id="set-input-state">Set Input State</button>
-                <button id="reset-input-state">Reset to |00⟩</button>
-                <button id="random-input-state">Random State</button>
-            </div>
-            <div class="normalization-info">
-                <small>States are automatically normalized</small>
-            </div>
-        `;
-        
-        circuitHeader.appendChild(inputStateDiv);
+                <div class="normalization-info">
+                    <small>States are automatically normalized</small>
+                </div>
+            `;
+        }
         
         // Add event listeners
         document.getElementById('set-input-state').addEventListener('click', () => this.setInputState());
