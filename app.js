@@ -103,14 +103,13 @@ class QuantumLab {
             inputStatePanel.innerHTML = `
                 <div class="qubit-inputs">
                     <div class="qubit-input" data-qubit="0">
-                        <label>Qubit 0:</label>
                         <div class="basis-controls">
                             <div class="basis-state">
-                                <label for="qubit-0-0">|0⟩ amplitude:</label>
+                                <label for="qubit-0-0">Qubit 0 |0⟩ amplitude:</label>
                                 <input type="text" id="qubit-0-0" name="qubit-0-0" class="complex-input" data-qubit="0" data-basis="0" value="1" placeholder="a+bi">
                             </div>
                             <div class="basis-state">
-                                <label for="qubit-0-1">|1⟩ amplitude:</label>
+                                <label for="qubit-0-1">Qubit 0 |1⟩ amplitude:</label>
                                 <input type="text" id="qubit-0-1" name="qubit-0-1" class="complex-input" data-qubit="0" data-basis="1" value="0" placeholder="a+bi">
                             </div>
                         </div>
@@ -122,14 +121,13 @@ class QuantumLab {
                         </div>
                     </div>
                     <div class="qubit-input" data-qubit="1">
-                        <label>Qubit 1:</label>
                         <div class="basis-controls">
                             <div class="basis-state">
-                                <label for="qubit-1-0">|0⟩ amplitude:</label>
+                                <label for="qubit-1-0">Qubit 1 |0⟩ amplitude:</label>
                                 <input type="text" id="qubit-1-0" name="qubit-1-0" class="complex-input" data-qubit="1" data-basis="0" value="1" placeholder="a+bi">
                             </div>
                             <div class="basis-state">
-                                <label for="qubit-1-1">|1⟩ amplitude:</label>
+                                <label for="qubit-1-1">Qubit 1 |1⟩ amplitude:</label>
                                 <input type="text" id="qubit-1-1" name="qubit-1-1" class="complex-input" data-qubit="1" data-basis="1" value="0" placeholder="a+bi">
                             </div>
                         </div>
@@ -355,27 +353,63 @@ class QuantumLab {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         
-        // Determine which qubit and position
+        // Find which qubit line was dropped on
         const qubitHeight = 60;
         const qubitIndex = Math.floor(y / qubitHeight);
         
         if (qubitIndex >= 0 && qubitIndex < this.numQubits) {
+            // Find the qubit line element
+            const qubitLine = workspace.querySelector(`[data-qubit="${qubitIndex}"]`);
+            if (!qubitLine) return;
+            
+            // Find the wire element (where slots are)
+            const wire = qubitLine.querySelector('.qubit-wire');
+            if (!wire) return;
+            
+            // Get wire position relative to workspace
+            const wireRect = wire.getBoundingClientRect();
+            const workspaceRect = workspace.getBoundingClientRect();
+            const wireX = wireRect.left - workspaceRect.left;
+            
+            // Calculate position relative to wire
+            const relativeX = x - wireX;
+            const slotWidth = 60; // Width of each slot
+            const position = Math.floor(relativeX / slotWidth);
+            
+            console.log(`Drop: x=${x}, wireX=${wireX}, relativeX=${relativeX}, position=${position}`);
+            
             // Check if this is a multi-qubit gate
             const multiQubitGates = ['CNOT', 'CZ', 'SWAP'];
             
             if (multiQubitGates.includes(this.draggedGate.name)) {
                 // For multi-qubit gates, we need at least 2 qubits
                 if (this.numQubits >= 2) {
-                    // Default to using first two qubits for now
-                    // TODO: Allow user to select target qubits
-                    const targetQubits = [0, 1]; // Control on qubit 0, target on qubit 1
-                    this.addGateToCircuit(this.draggedGate.name, targetQubits);
+                    // Determine target qubits based on drop position
+                    let targetQubits;
+                    if (this.draggedGate.name === 'SWAP') {
+                        // SWAP can work between any two adjacent qubits
+                        if (qubitIndex < this.numQubits - 1) {
+                            targetQubits = [qubitIndex, qubitIndex + 1];
+                        } else {
+                            targetQubits = [qubitIndex - 1, qubitIndex];
+                        }
+                    } else {
+                        // CNOT and CZ - control on dropped qubit, target on next qubit
+                        if (qubitIndex < this.numQubits - 1) {
+                            targetQubits = [qubitIndex, qubitIndex + 1]; // Control on qubitIndex, target on qubitIndex+1
+                        } else {
+                            targetQubits = [qubitIndex - 1, qubitIndex]; // Control on qubitIndex-1, target on qubitIndex
+                        }
+                    }
+                    console.log(`Adding multi-qubit gate ${this.draggedGate.name} at position ${position} to qubits ${targetQubits}`);
+                    this.addGateToCircuit(this.draggedGate.name, targetQubits, { position });
                 } else {
                     this.showError('Multi-qubit gates require at least 2 qubits');
                 }
             } else {
                 // Single qubit gate
-                this.addGateToCircuit(this.draggedGate.name, [qubitIndex]);
+                console.log(`Adding single-qubit gate ${this.draggedGate.name} to qubit ${qubitIndex} at position ${position}`);
+                this.addGateToCircuit(this.draggedGate.name, [qubitIndex], { position });
             }
         }
         
@@ -487,10 +521,21 @@ class QuantumLab {
             wire.style.alignItems = 'center';
             wire.style.padding = '0 1rem';
             
-            // Add gate slots
-            const gateCount = (this.circuit.gates || []).filter(g => g.targetQubits.includes(i)).length;
-            console.log(`Gate count for qubit ${i}: ${gateCount}`);
-            for (let j = 0; j < Math.max(gateCount + 1, 5); j++) {
+            // Add gate slots - calculate based on actual gate positions
+            const allPositions = new Set();
+            (this.circuit.gates || []).forEach(gate => {
+                const position = gate.params.position || 0;
+                if (gate.targetQubits.includes(i)) {
+                    allPositions.add(position);
+                    console.log(`Gate ${gate.name} on qubit ${i} at position ${position}`);
+                }
+            });
+            
+            // Ensure minimum 5 slots
+            const maxPosition = Math.max(...Array.from(allPositions), 4);
+            console.log(`Qubit ${i}: positions=${Array.from(allPositions)}, maxPosition=${maxPosition}`);
+            
+            for (let j = 0; j <= maxPosition; j++) {
                 const slot = document.createElement('div');
                 slot.className = 'gate-slot';
                 slot.dataset.qubit = i;
@@ -546,8 +591,13 @@ class QuantumLab {
     }
     
     getGateAtPosition(qubit, position) {
-        const qubitGates = (this.circuit.gates || []).filter(g => g.targetQubits.includes(qubit));
-        return qubitGates[position] || null;
+        // Find gate at specific position for this qubit
+        const gate = (this.circuit.gates || []).find(gate => {
+            const gatePosition = gate.params.position || gate.targetQubits.indexOf(qubit);
+            return gate.targetQubits.includes(qubit) && gatePosition === position;
+        });
+        console.log(`getGateAtPosition: qubit=${qubit}, position=${position}, found=${gate ? gate.name : 'null'}`);
+        return gate || null;
     }
     
     handleSlotClick(slot) {

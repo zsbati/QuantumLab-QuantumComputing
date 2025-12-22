@@ -36,7 +36,34 @@ class QuantumCircuit {
             matrix: QuantumGates.getGate(gateName, ...Object.values(params))
         };
 
-        this.gates.push(gate);
+        // Handle position-based insertion
+        if (params.position !== undefined) {
+            // Insert gate at specific position
+            const position = params.position;
+            
+            // Find the correct insertion point based on position
+            let insertIndex = this.gates.length;
+            
+            // Count gates that would appear before this position on any target qubit
+            for (let i = 0; i < this.gates.length; i++) {
+                const existingGate = this.gates[i];
+                const existingPosition = existingGate.params.position || i;
+                
+                // Check if existing gate overlaps with target qubits and comes before desired position
+                if (existingGate.targetQubits.some(q => targetQubits.includes(q)) && 
+                    existingPosition < position) {
+                    insertIndex = i + 1;
+                } else if (existingPosition >= position) {
+                    break;
+                }
+            }
+            
+            // Insert gate at calculated position
+            this.gates.splice(insertIndex, 0, gate);
+        } else {
+            // Append gate as before
+            this.gates.push(gate);
+        }
         return this;
     }
 
