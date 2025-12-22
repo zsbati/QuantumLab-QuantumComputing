@@ -526,9 +526,13 @@ class QuantumLab {
                     slot.style.fontSize = '12px';
                     slot.style.border = '2px solid #6366f1';
                 } else {
-                    // Make empty slots more visible
+                    // Make empty slots more visible and show Identity gate
                     slot.style.background = '#f9fafb';
                     slot.style.border = '2px dashed #d1d5db';
+                    slot.textContent = 'I';
+                    slot.style.color = '#9ca3af';
+                    slot.style.fontWeight = 'bold';
+                    slot.style.fontSize = '12px';
                 }
                 
                 wire.appendChild(slot);
