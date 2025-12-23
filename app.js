@@ -266,7 +266,7 @@ class QuantumLab {
             amplitudes.forEach((amp, i) => {
                 const prob = amp.magnitude() ** 2;
                 console.log(`State |${i.toString(2).padStart(this.numQubits, '0')}⟩: amplitude=${amp.toString()}, magnitude=${amp.magnitude()}, probability=${prob}`);
-                if (prob > 0.0001) { // Lower threshold
+                if (prob > 0.000001) { // Even lower threshold to show very small probabilities
                     const bitString = i.toString(2).padStart(this.numQubits, '0');
                     probHTML += `<div>|${bitString}⟩: ${(prob * 100).toFixed(2)}% (amplitude: ${amp.real.toFixed(3)}${amp.imag >= 0 ? '+' : ''}${amp.imag.toFixed(3)}i)</div>`;
                 }
@@ -756,7 +756,7 @@ class QuantumLab {
             amplitudes.forEach((amp, i) => {
                 const prob = amp.magnitude() ** 2;
                 console.log(`State |${i.toString(2).padStart(this.numQubits, '0')}⟩: amplitude=${amp.toString()}, magnitude=${amp.magnitude()}, probability=${prob}`);
-                if (prob > 0.0001) { // Lower threshold
+                if (prob > 0.000001) { // Even lower threshold to show very small probabilities
                     const bitString = i.toString(2).padStart(this.numQubits, '0');
                     probHTML += `<div>|${bitString}⟩: ${(prob * 100).toFixed(2)}% (amplitude: ${amp.real.toFixed(3)}${amp.imag >= 0 ? '+' : ''}${amp.imag.toFixed(3)}i)</div>`;
                 }

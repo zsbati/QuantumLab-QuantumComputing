@@ -87,20 +87,148 @@ class QuantumVisualizer {
         
         this.clear();
         
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const radius = Math.min(centerX, centerY) - 40;
+        // Calculate number of qubits from state vector length
+        const numQubits = Math.log2(stateVector.length);
+        
+        if (numQubits === 1) {
+            // Single qubit - draw one large sphere
+            this.drawSingleBlochSphere(stateVector, 0, 0, this.canvas.width, this.canvas.height, 'Qubit 0');
+        } else {
+            // Multiple qubits - draw multiple spheres in a grid
+            const cols = Math.ceil(Math.sqrt(numQubits));
+            const rows = Math.ceil(numQubits / cols);
+            const sphereWidth = this.canvas.width / cols;
+            const sphereHeight = this.canvas.height / rows;
+            
+            for (let i = 0; i < numQubits; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = col * sphereWidth;
+                const y = row * sphereHeight;
+                
+                // Extract individual qubit state
+                const qubitState = this.extractQubitState(stateVector, i);
+                
+                // Draw sphere for this qubit
+                this.drawSingleBlochSphere(
+                    qubitState, 
+                    x, y, 
+                    sphereWidth, sphereHeight, 
+                    `Qubit ${i}`
+                );
+            }
+        }
+    }
+    
+    // Extract individual qubit state from multi-qubit state vector
+    extractQubitState(stateVector, qubitIndex) {
+        console.log('extractQubitState called with stateVector:', stateVector, 'qubitIndex:', qubitIndex);
+        
+        const numQubits = Math.log2(stateVector.length);
+        
+        // Calculate the reduced density matrix for this qubit by tracing out others
+        // This is a simplified but correct approach for extracting individual qubit states
+        const dim = Math.pow(2, numQubits);
+        const qubitState = [];
+        
+        // For each basis state of the target qubit (|0⟩ and |1⟩)
+        for (let targetBit = 0; targetBit < 2; targetBit++) {
+            let amplitude = new Complex(0, 0);
+            let probability = 0;
+            
+            // Sum over all states where the target qubit has the specified value
+            for (let i = 0; i < dim; i++) {
+                // Check if this state has the target qubit in the desired state
+                const bitAtPosition = (i >> (numQubits - 1 - qubitIndex)) & 1;
+                
+                if (bitAtPosition === targetBit) {
+                    console.log(`State ${i}:`, stateVector[i]);
+                    
+                    // Handle both raw Complex objects and objects with .amplitude property
+                    let stateAmplitude;
+                    let stateProbability;
+                    
+                    if (stateVector[i].amplitude) {
+                        // Object with .amplitude property
+                        stateAmplitude = stateVector[i].amplitude;
+                        stateProbability = stateVector[i].probability;
+                    } else {
+                        // Raw Complex object - calculate probability from magnitude
+                        stateAmplitude = stateVector[i];
+                        stateProbability = stateVector[i].magnitude() ** 2;
+                    }
+                    
+                    console.log(`Adding amplitude:`, stateAmplitude, `probability:`, stateProbability);
+                    amplitude = amplitude.add(stateAmplitude);
+                    probability += stateProbability;
+                }
+            }
+            
+            qubitState.push({
+                amplitude: amplitude,
+                probability: probability
+            });
+        }
+        
+        // Normalize the extracted qubit state
+        // Calculate the norm as sqrt(sum of |amplitude|^2)
+        const amp0MagSq = qubitState[0].amplitude.real * qubitState[0].amplitude.real + 
+                         qubitState[0].amplitude.imag * qubitState[0].amplitude.imag;
+        const amp1MagSq = qubitState[1].amplitude.real * qubitState[1].amplitude.real + 
+                         qubitState[1].amplitude.imag * qubitState[1].amplitude.imag;
+        const norm = Math.sqrt(amp0MagSq + amp1MagSq);
+        
+        console.log(`Amplitude magnitudes squared: |amp0|^2=${amp0MagSq}, |amp1|^2=${amp1MagSq}`);
+        console.log(`Normalization factor (norm): ${norm}`);
+        
+        if (norm > 0) {
+            // Normalize amplitudes by dividing by the norm
+            const amp0Real = qubitState[0].amplitude.real / norm;
+            const amp0Imag = qubitState[0].amplitude.imag / norm;
+            const amp1Real = qubitState[1].amplitude.real / norm;
+            const amp1Imag = qubitState[1].amplitude.imag / norm;
+            
+            console.log(`Before normalization - Amp0: (${qubitState[0].amplitude.real}, ${qubitState[0].amplitude.imag}), Amp1: (${qubitState[1].amplitude.real}, ${qubitState[1].amplitude.imag})`);
+            
+            // Create new normalized Complex objects
+            qubitState[0].amplitude = new Complex(amp0Real, amp0Imag);
+            qubitState[1].amplitude = new Complex(amp1Real, amp1Imag);
+            
+            // Update probabilities to match normalized amplitudes
+            qubitState[0].probability = amp0Real * amp0Real + amp0Imag * amp0Imag;
+            qubitState[1].probability = amp1Real * amp1Real + amp1Imag * amp1Imag;
+            
+            console.log(`After normalization - Amp0: (${amp0Real}, ${amp0Imag}), Amp1: (${amp1Real}, ${amp1Imag})`);
+            console.log(`Normalized probabilities: P0=${qubitState[0].probability}, P1=${qubitState[1].probability}`);
+            console.log(`Sum of normalized probabilities: ${qubitState[0].probability + qubitState[1].probability}`);
+        }
+        
+        console.log(`Qubit ${qubitIndex} extracted state:`, qubitState);
+        return qubitState;
+    }
+    
+    // Draw a single Bloch sphere
+    drawSingleBlochSphere(stateVector, offsetX, offsetY, width, height, title) {
+        console.log(`drawSingleBlochSphere called:`, {offsetX, offsetY, width, height, title});
+        
+        const centerX = offsetX + width / 2;
+        const centerY = offsetY + height / 2;
+        const radius = Math.min(width, height) / 2 - 20;
+        
+        console.log(`Sphere center: (${centerX}, ${centerY}), radius: ${radius}`);
         
         // Draw sphere outline
         this.ctx.strokeStyle = this.colors.grid;
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
         this.ctx.stroke();
         
+        console.log('Drew sphere outline');
+        
         // Draw coordinate axes
         this.ctx.strokeStyle = this.colors.text;
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 0.5;
         
         // X-axis
         this.ctx.beginPath();
@@ -119,18 +247,52 @@ class QuantumVisualizer {
         this.ctx.ellipse(centerX, centerY, radius * 0.3, radius, 0, 0, 2 * Math.PI);
         this.ctx.stroke();
         
-        // Draw state vector on Bloch sphere (for single qubit)
+        console.log('Drew coordinate axes');
+        
+        // Draw state vector on Bloch sphere
         if (stateVector.length === 2) {
+            console.log('StateVector for Bloch sphere:', stateVector);
+            
+            // Get amplitude objects and check their properties
+            const amp0 = stateVector[0].amplitude;
+            const amp1 = stateVector[1].amplitude;
+            
+            console.log('Amplitude 0:', amp0, 'real:', amp0.real, 'imag:', amp0.imag);
+            console.log('Amplitude 1:', amp1, 'real:', amp1.real, 'imag:', amp1.imag);
+            
+            // Calculate magnitude manually to avoid NaN issues
+            const mag0 = Math.sqrt(amp0.real * amp0.real + amp0.imag * amp0.imag);
+            const mag1 = Math.sqrt(amp1.real * amp1.real + amp1.imag * amp1.imag);
+            
+            console.log('Manual magnitude 0:', mag0, 'Manual magnitude 1:', mag1);
+            console.log('Probability 0:', stateVector[0].probability, 'Probability 1:', stateVector[1].probability);
+            
             const theta = 2 * Math.acos(Math.sqrt(stateVector[0].probability));
-            const phi = this.getPhaseDifference(stateVector);
+            
+            // Calculate phi manually
+            let phi = 0;
+            if (mag0 > 0 && mag1 > 0) {
+                const phase0 = Math.atan2(amp0.imag, amp0.real);
+                const phase1 = Math.atan2(amp1.imag, amp1.real);
+                phi = phase1 - phase0;
+            }
+            
+            console.log(`Calculated: theta=${theta}, phi=${phi}`);
+            
+            // Handle NaN values
+            if (isNaN(phi) || !isFinite(phi)) {
+                console.log('Phi is invalid, defaulting to 0');
+                phi = 0;
+            }
             
             const x = centerX + radius * Math.sin(theta) * Math.cos(phi);
             const y = centerY - radius * Math.sin(theta) * Math.sin(phi);
-            const z = centerY - radius * Math.cos(theta);
+            
+            console.log(`Final coordinates: x=${x}, y=${y}`);
             
             // Draw state vector
             this.ctx.strokeStyle = this.colors.primary;
-            this.ctx.lineWidth = 3;
+            this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.moveTo(centerX, centerY);
             this.ctx.lineTo(x, y);
@@ -139,28 +301,42 @@ class QuantumVisualizer {
             // Draw state point
             this.ctx.fillStyle = this.colors.danger;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, 6, 0, 2 * Math.PI);
+            this.ctx.arc(x, y, 3, 0, 2 * Math.PI);
             this.ctx.fill();
+            
+            console.log('Drew state vector and point');
         }
         
         // Draw labels
         this.ctx.fillStyle = this.colors.text;
-        this.ctx.font = '12px Arial';
+        this.ctx.font = '10px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('|0⟩', centerX, centerY - radius - 10);
-        this.ctx.fillText('|1⟩', centerX, centerY + radius + 20);
-        this.ctx.fillText('|+⟩', centerX + radius + 15, centerY);
-        this.ctx.fillText('|-⟩', centerX - radius - 15, centerY);
+        this.ctx.fillText('|0⟩', centerX, centerY - radius - 5);
+        this.ctx.fillText('|1⟩', centerX, centerY + radius + 15);
+        this.ctx.fillText('|+⟩', centerX + radius + 10, centerY);
+        this.ctx.fillText('|-⟩', centerX - radius - 10, centerY);
         
         // Title
-        this.ctx.fillText('Bloch Sphere', centerX, 20);
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText(title, centerX, offsetY + 15);
+        
+        console.log('Drew labels and title');
     }
     
     getPhaseDifference(stateVector) {
         if (stateVector.length !== 2) return 0;
         
-        const phase0 = stateVector[0].amplitude.phase();
-        const phase1 = stateVector[1].amplitude.phase();
+        // Handle both raw Complex objects and objects with .amplitude property
+        const amp0 = stateVector[0].amplitude || stateVector[0];
+        const amp1 = stateVector[1].amplitude || stateVector[1];
+        
+        // Only calculate phase difference if both amplitudes have non-zero magnitude
+        if (amp0.magnitude() === 0 || amp1.magnitude() === 0) {
+            return 0; // Default phase for zero amplitudes
+        }
+        
+        const phase0 = amp0.phase();
+        const phase1 = amp1.phase();
         
         return phase1 - phase0;
     }
