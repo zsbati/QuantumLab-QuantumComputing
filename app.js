@@ -408,6 +408,8 @@ class QuantumLab {
     
     addGateToCircuit(gateName, targetQubits, params = {}) {
         try {
+            console.log(`Adding gate: ${gateName} to qubits ${targetQubits} with params:`, params);
+            
             // Ensure circuit exists
             if (!this.circuit) {
                 this.createInitialCircuit();
@@ -415,11 +417,13 @@ class QuantumLab {
             
             // Check if gate requires parameters
             const gateInfo = QuantumGates.getGateInfo(gateName);
+            console.log(`Gate info for ${gateName}:`, gateInfo);
             
             if (gateInfo && gateInfo.params > 0) {
-                this.showParameterDialog(gateName, targetQubits);
+                console.log(`Gate ${gateName} requires parameters, showing dialog`);
+                this.showParameterDialog(gateName, targetQubits, params.position || 0);
             } else {
-                // Add gate to circuit
+                console.log(`Adding gate ${gateName} directly to circuit`);
                 this.circuitBuilder.addGate(gateName, targetQubits, params);
                 this.circuit = this.circuitBuilder.circuit; // Get the updated circuit
                 console.log(`Added gate ${gateName} to qubits [${targetQubits.join(', ')}]`);
@@ -428,19 +432,22 @@ class QuantumLab {
                 this.updateVisualization();
             }
         } catch (error) {
-            console.error('Error adding gate:', error);
+            console.error(`Error adding gate ${gateName}:`, error);
+            this.showError(`Failed to add gate ${gateName}: ${error.message}`);
             this.showError(error.message);
         }
     }
     
-    showParameterDialog(gateName, targetQubits) {
+    showParameterDialog(gateName, targetQubits, position = 0) {
+        console.log(`Showing parameter dialog for ${gateName} at position ${position}`);
         const dialog = document.createElement('div');
         dialog.className = 'parameter-dialog';
+        dialog.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
         dialog.innerHTML = `
-            <div class="dialog-content">
-                <h3>Gate Parameters: ${gateName}</h3>
+            <div class="dialog-content" style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); max-width: 400px; width: 100%; margin: 0 1rem;">
+                <h3 style="color: #6366f1; margin-bottom: 1.5rem; font-size: 1.3rem;">Gate Parameters: ${gateName}</h3>
                 <div class="parameter-form"></div>
-                <div class="dialog-buttons">
+                <div class="dialog-buttons" style="display: flex; gap: 1rem; margin-top: 2rem; justify-content: flex-end;">
                     <button class="btn btn-primary">Apply</button>
                     <button class="btn btn-secondary">Cancel</button>
                 </div>
@@ -448,23 +455,42 @@ class QuantumLab {
         `;
         
         document.body.appendChild(dialog);
+        console.log('Dialog added to body');
+        console.log('Dialog element:', dialog);
+        console.log('Dialog offset:', dialog.getBoundingClientRect());
         
         // Create parameter form
         const form = GateParameterDialog.createParameterForm(gateName);
+        console.log('Parameter form created:', form);
         if (form) {
             dialog.querySelector('.parameter-form').appendChild(form);
         }
         
         // Handle dialog actions
         dialog.querySelector('.btn-primary').addEventListener('click', () => {
+            console.log('Apply button clicked');
             const params = form ? GateParameterDialog.getParameterValues(gateName, form) : {};
-            this.circuit.addGate(gateName, targetQubits, params);
+            console.log('Parameters collected:', params);
+            
+            // Add the position parameter to the params
+            params.position = position;
+            
+            console.log('Final params with position:', params);
+            console.log('Adding gate to circuit:', gateName, targetQubits, params);
+            
+            // Use circuit builder instead of direct circuit.addGate
+            this.circuitBuilder.addGate(gateName, targetQubits, params);
+            this.circuit = this.circuitBuilder.circuit; // Get the updated circuit
+            console.log('Gate added to circuit via builder');
+            console.log('Circuit now has', (this.circuit.gates || []).length, 'gates');
+            
             this.updateCircuitDisplay();
             this.updateVisualization();
             document.body.removeChild(dialog);
         });
         
         dialog.querySelector('.btn-secondary').addEventListener('click', () => {
+            console.log('Cancel button clicked');
             document.body.removeChild(dialog);
         });
     }
