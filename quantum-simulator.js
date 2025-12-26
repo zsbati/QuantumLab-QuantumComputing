@@ -178,43 +178,130 @@ class QuantumCircuit {
             console.log(`NOT gate result:`, this.state.amplitudes.map(a => a.toString()));
             
         } else if (gate.name === 'AND') {
-            // AND gate: output = input1 AND input2
+            // AND gate: output = input1 AND input2 (measurement-based approach)
             const inputQubit1 = gate.inputQubits[0];
             const inputQubit2 = gate.inputQubits[1];
             const outputQubit = gate.outputQubit;
             
             console.log(`AND gate: input qubits=[${inputQubit1}, ${inputQubit2}], output qubit=${outputQubit}`);
             
-            // Create new amplitudes array
-            const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+            // For definite states (like |00⟩, |01⟩, |10⟩, |11⟩), just apply classical logic
+            const numQubits = this.state.numQubits;
+            const dimension = Math.pow(2, numQubits);
             
-            // For each basis state, apply AND truth table
+            // Find which basis state we're in
+            let stateIndex = -1;
             for (let i = 0; i < dimension; i++) {
-                const bit1 = (i >> (numQubits - 1 - inputQubit1)) & 1;
-                const bit2 = (i >> (numQubits - 1 - inputQubit2)) & 1;
+                if (this.state.amplitudes[i].magnitude() > 0.9) {
+                    stateIndex = i;
+                    break;
+                }
+            }
+            
+            if (stateIndex >= 0) {
+                // Extract bit values
+                const bit1 = (stateIndex >> (numQubits - 1 - inputQubit1)) & 1;
+                const bit2 = (stateIndex >> (numQubits - 1 - inputQubit2)) & 1;
                 const andResult = bit1 & bit2;
                 
-                // Build target state index: same as input but with AND result on output bit
-                let targetStateIndex = i;
+                console.log(`AND gate: state=${stateIndex.toString(2).padStart(numQubits, '0')}, bit1=${bit1}, bit2=${bit2}, andResult=${andResult}`);
+                
+                // Create new state with AND result
+                const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+                
+                // Build target state index: same as input but with AND result on output qubit
+                let targetIndex = stateIndex;
                 const outputBitMask = 1 << (numQubits - 1 - outputQubit);
                 const andResultMask = andResult << (numQubits - 1 - outputQubit);
                 
                 // Clear the output bit position
-                targetStateIndex = targetStateIndex & ~outputBitMask;
+                targetIndex = targetIndex & ~outputBitMask;
                 // Set the AND result on the output bit position
-                targetStateIndex = targetStateIndex | andResultMask;
+                targetIndex = targetIndex | andResultMask;
                 
-                // Move amplitude from original state to target state
-                if (this.state.amplitudes[i].magnitude() > 0) {
-                    newAmplitudes[targetStateIndex] = this.state.amplitudes[i].clone();
-                }
+                newAmplitudes[targetIndex] = new Complex(1, 0);
+                this.state.amplitudes = newAmplitudes;
+                
+                console.log(`AND gate result: state ${targetIndex.toString(2).padStart(numQubits, '0')}`);
             }
-            
-            this.state.amplitudes = newAmplitudes;
-            console.log(`AND gate result:`, this.state.amplitudes.map(a => a.toString()));
         }
     }
 
+    measureJointState(qubits) {
+        // Measure multiple qubits jointly to preserve quantum correlation
+        const numQubits = this.state.numQubits;
+        const dimension = Math.pow(2, numQubits);
+        
+        // Calculate probabilities for each basis state
+        const probabilities = [];
+        for (let i = 0; i < dimension; i++) {
+            const probability = this.state.amplitudes[i].magnitude() * this.state.amplitudes[i].magnitude();
+            probabilities.push(probability);
+        }
+        
+        // Random measurement based on actual state probabilities
+        const random = Math.random();
+        let cumulative = 0;
+        
+        for (let i = 0; i < dimension; i++) {
+            cumulative += probabilities[i];
+            if (random < cumulative) {
+                // Collapse to measured state
+                this.state.amplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+                this.state.amplitudes[i] = new Complex(1, 0);
+                
+                // Extract bit values for each qubit
+                const result = {};
+                for (const qubit of qubits) {
+                    result[qubit] = (i >> (numQubits - 1 - qubit)) & 1;
+                }
+                
+                console.log(`Measured state ${i.toString(2).padStart(numQubits, '0')}, qubits:`, result);
+                return result;
+            }
+        }
+        
+        // Fallback (shouldn't happen)
+        const lastIndex = dimension - 1;
+        this.state.amplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+        this.state.amplitudes[lastIndex] = new Complex(1, 0);
+        
+        const result = {};
+        for (const qubit of qubits) {
+            result[qubit] = (lastIndex >> (numQubits - 1 - qubit)) & 1;
+        }
+        
+        return result;
+    }
+    
+    prepareQubitState(qubit, value) {
+        // Prepare a specific qubit in |0⟩ or |1⟩ state
+        const numQubits = this.state.numQubits;
+        const dimension = Math.pow(2, numQubits);
+        
+        // Create new amplitudes with the target qubit in the desired state
+        const newAmplitudes = this.state.amplitudes.map((amp, index) => {
+            const bitValue = (index >> (numQubits - 1 - qubit)) & 1;
+            
+            if (bitValue === value) {
+                // This amplitude should remain unchanged
+                return amp.clone();
+            } else {
+                // This amplitude should become zero
+                return new Complex(0, 0);
+            }
+        });
+        
+        // Check if we created a zero vector and fix it
+        const hasNonZero = newAmplitudes.some(amp => amp.magnitude() > 1e-10);
+        if (!hasNonZero) {
+            console.log('Created zero vector, keeping original state');
+            return; // Don't update if it would create zero vector
+        }
+        
+        this.state.amplitudes = newAmplitudes;
+    }
+    
     measureQubit(qubit) {
         // Get probabilities for measuring this specific qubit
         const probabilities = this.getQubitProbabilities(qubit);

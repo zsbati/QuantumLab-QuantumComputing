@@ -923,13 +923,24 @@ class QuantumLab {
         console.log('=== DISPLAY RESULTS START ===');
         console.log('Displaying results:', result);
         console.log('Final state type:', typeof result.finalState);
-        console.log('Final state has getStateVector:', typeof result.finalState.getStateVector);
+        console.log('Final state has toString:', typeof result.finalState.toString);
+        console.log('Final state:', result.finalState ? result.finalState.toString() : 'NULL STATE');
         
         // Update state display with final state
         const stateDisplay = document.getElementById('state-display');
-        if (result.finalState) {
-            stateDisplay.textContent = result.finalState.toString();
-            console.log('Final state:', result.finalState.toString());
+        if (result.finalState && stateDisplay) {
+            try {
+                stateDisplay.textContent = result.finalState.toString();
+                console.log('Updated state display to:', result.finalState.toString());
+            } catch (error) {
+                console.error('Error updating state display:', error);
+                stateDisplay.textContent = 'State: ' + (result.finalState ? result.finalState.toString() : 'ERROR');
+            }
+        } else {
+            console.log('No final state to display');
+            if (stateDisplay) {
+                stateDisplay.textContent = 'No final state available';
+            }
         }
         
         // Update probability display with final state probabilities
@@ -1185,12 +1196,12 @@ class QuantumLab {
         const matrix = Array(size).fill().map(() => Array(size).fill().map(() => new Complex(0, 0)));
         
         if (gateName === 'AND') {
-            // AND truth table: 00→0, 01→0, 10→0, 11→1 (output on first qubit)
-            // Clear first qubit (output) and set based on second qubit
-            matrix[0][0] = new Complex(1, 0); // |00⟩ → |00⟩ (clear output)
-            matrix[1][1] = new Complex(1, 0); // |01⟩ → |01⟩ (clear output) 
-            matrix[2][2] = new Complex(1, 0); // |10⟩ → |10⟩ (clear output)
-            matrix[3][3] = new Complex(1, 0); // |11⟩ → |11⟩ (set output = 1)
+            // AND truth table matrix: [[1,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]]
+            // |00⟩ → |00⟩, |01⟩ → |01⟩, |10⟩ → |00⟩, |11⟩ → |11⟩
+            matrix[0][0] = new Complex(1, 0); // |00⟩ → |00⟩
+            matrix[1][1] = new Complex(1, 0); // |01⟩ → |01⟩
+            matrix[2][0] = new Complex(1, 0); // |10⟩ → |00⟩ 
+            matrix[3][3] = new Complex(1, 0); // |11⟩ → |11⟩
         } else if (gateName === 'OR') {
             // OR truth table: 00→0, 01→1, 10→1, 11→1
             matrix[0][0] = new Complex(1, 0); // |00⟩ → |00⟩
