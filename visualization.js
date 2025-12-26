@@ -437,7 +437,9 @@ class QuantumVisualizer {
             this.ctx.strokeStyle = this.colors.primary;
             this.ctx.lineWidth = 2;
             
-            gate.targetQubits.forEach(qubit => {
+            // Handle both quantum gates (targetQubits) and classical gates (inputQubits)
+            const gateQubitsList = gate.targetQubits || gate.inputQubits || [];
+            gateQubitsList.forEach(qubit => {
                 const y = padding + qubit * qubitHeight + qubitHeight / 2;
                 
                 // Draw gate rectangle
@@ -452,9 +454,10 @@ class QuantumVisualizer {
             });
             
             // Draw connections for multi-qubit gates
-            if (gate.targetQubits.length > 1) {
-                const firstY = padding + gate.targetQubits[0] * qubitHeight + qubitHeight / 2;
-                const lastY = padding + gate.targetQubits[gate.targetQubits.length - 1] * qubitHeight + qubitHeight / 2;
+            const gateQubits = gate.targetQubits || gate.inputQubits || [];
+            if (gateQubits.length > 1) {
+                const firstY = padding + gateQubits[0] * qubitHeight + qubitHeight / 2;
+                const lastY = padding + gateQubits[gateQubits.length - 1] * qubitHeight + qubitHeight / 2;
                 
                 this.ctx.strokeStyle = this.colors.primary;
                 this.ctx.lineWidth = 2;

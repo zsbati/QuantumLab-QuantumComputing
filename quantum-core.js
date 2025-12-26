@@ -355,13 +355,12 @@ class QuantumState {
 
     createFullGateMatrix(gateMatrix, targetQubits) {
         const gateSize = gateMatrix.rows;
-        const gateQubits = Math.log2(gateSize);
-
-        if (!Number.isInteger(gateQubits)) {
+        const gateQubitCount = Math.log2(gateSize);
+        if (!Number.isInteger(gateQubitCount)) {
             throw new Error("Gate matrix size must be a power of 2");
         }
-
-        if (targetQubits.length !== gateQubits) {
+        
+        if (targetQubits.length !== gateQubitCount) {
             throw new Error("Number of target qubits must match gate size");
         }
 

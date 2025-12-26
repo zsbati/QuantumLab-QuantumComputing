@@ -110,7 +110,13 @@ class QuantumCircuit {
         // Apply all gates
         for (const gate of this.gates) {
             const beforeState = this.state.clone();
-            this.state.applyGate(gate.matrix, gate.targetQubits);
+            
+            // Handle classical gates differently
+            if (gate.type === 'classical') {
+                this.applyClassicalGate(gate);
+            } else {
+                this.state.applyGate(gate.matrix, gate.targetQubits);
+            }
 
             result.gateOperations.push({
                 gate: gate.name,
@@ -134,6 +140,79 @@ class QuantumCircuit {
         this.executionHistory.push(result);
 
         return result;
+    }
+
+    applyClassicalGate(gate) {
+        // Classical gate execution - works on definite bit values
+        const numQubits = this.state.numQubits;
+        const dimension = Math.pow(2, numQubits);
+        
+        console.log(`Applying classical gate ${gate.name} to state:`, this.state.amplitudes.map(a => a.toString()));
+        
+        if (gate.name === 'NOT') {
+            // NOT gate: flip single bit
+            const inputQubit = gate.inputQubits[0];
+            const outputQubit = gate.outputQubit;
+            
+            console.log(`NOT gate: input qubit=${inputQubit}, output qubit=${outputQubit}`);
+            
+            // Create new amplitudes array
+            const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+            
+            // For each basis state, flip the bit and move amplitude
+            for (let i = 0; i < dimension; i++) {
+                const inputBit = (i >> (numQubits - 1 - inputQubit)) & 1;
+                const flippedBit = 1 - inputBit;
+                
+                // Calculate new state index with flipped bit
+                let newStateIndex = i;
+                if (flippedBit !== ((i >> (numQubits - 1 - outputQubit)) & 1)) {
+                    newStateIndex = i ^ (1 << (numQubits - 1 - outputQubit));
+                }
+                
+                newAmplitudes[newStateIndex] = this.state.amplitudes[i].clone();
+                console.log(`State ${i.toString(2).padStart(numQubits, '0')}: inputBit=${inputBit}, flippedBit=${flippedBit}, newIndex=${newStateIndex.toString(2).padStart(numQubits, '0')}`);
+            }
+            
+            this.state.amplitudes = newAmplitudes;
+            console.log(`NOT gate result:`, this.state.amplitudes.map(a => a.toString()));
+            
+        } else if (gate.name === 'AND') {
+            // AND gate: output = input1 AND input2
+            const inputQubit1 = gate.inputQubits[0];
+            const inputQubit2 = gate.inputQubits[1];
+            const outputQubit = gate.outputQubit;
+            
+            console.log(`AND gate: input qubits=[${inputQubit1}, ${inputQubit2}], output qubit=${outputQubit}`);
+            
+            // Create new amplitudes array
+            const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+            
+            // For each basis state, apply AND truth table
+            for (let i = 0; i < dimension; i++) {
+                const bit1 = (i >> (numQubits - 1 - inputQubit1)) & 1;
+                const bit2 = (i >> (numQubits - 1 - inputQubit2)) & 1;
+                const andResult = bit1 & bit2;
+                
+                // Build target state index: same as input but with AND result on output bit
+                let targetStateIndex = i;
+                const outputBitMask = 1 << (numQubits - 1 - outputQubit);
+                const andResultMask = andResult << (numQubits - 1 - outputQubit);
+                
+                // Clear the output bit position
+                targetStateIndex = targetStateIndex & ~outputBitMask;
+                // Set the AND result on the output bit position
+                targetStateIndex = targetStateIndex | andResultMask;
+                
+                // Move amplitude from original state to target state
+                if (this.state.amplitudes[i].magnitude() > 0) {
+                    newAmplitudes[targetStateIndex] = this.state.amplitudes[i].clone();
+                }
+            }
+            
+            this.state.amplitudes = newAmplitudes;
+            console.log(`AND gate result:`, this.state.amplitudes.map(a => a.toString()));
+        }
     }
 
     measureQubit(qubit) {

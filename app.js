@@ -483,8 +483,38 @@ class QuantumLab {
                         });
                     } else {
                         // AND/OR gates: 2 input qubits → 1 output qubit
-                        this.showError(`Classical ${this.draggedGate.name} gate temporarily disabled - will be re-enabled soon`);
-                        return;
+                        let inputQubits;
+                        let outputQubit;
+                        
+                        if (qubitIndex < this.numQubits - 1) {
+                            // Use current qubit and next one as inputs, output on current qubit
+                            inputQubits = [qubitIndex, qubitIndex + 1];
+                            outputQubit = qubitIndex;
+                        } else {
+                            // Use current qubit and previous one as inputs, output on current qubit
+                            inputQubits = [qubitIndex - 1, qubitIndex];
+                            outputQubit = qubitIndex;
+                        }
+                        
+                        if (this.draggedGate.name === 'AND') {
+                            // AND gate: 2 inputs → 1 output
+                            console.log(`Adding classical AND gate at position ${position}: inputs [${inputQubits.join(', ')}] → output ${outputQubit}`);
+                            this.addGateToCircuit(this.draggedGate.name, inputQubits, { 
+                                position, 
+                                outputQubit,
+                                type: 'classical'
+                            });
+                        } else if (this.draggedGate.name === 'OR') {
+                            // OR gate: 2 inputs → 1 output
+                            console.log(`Adding classical OR gate at position ${position}: inputs [${inputQubits.join(', ')}] → output ${outputQubit}`);
+                            this.addGateToCircuit(this.draggedGate.name, inputQubits, { 
+                                position, 
+                                outputQubit,
+                                type: 'classical'
+                            });
+                        } else {
+                            this.showError(`Unknown classical gate: ${this.draggedGate.name}`);
+                        }
                     }
                 } else {
                     const minQubits = this.draggedGate.name === 'NOT' ? 1 : 2;
@@ -534,22 +564,56 @@ class QuantumLab {
                 this.createInitialCircuit();
             }
             
-            // Check if gate requires parameters
-            const gateInfo = QuantumGates.getGateInfo(gateName);
-            console.log(`Gate info for ${gateName}:`, gateInfo);
-            
-            if (gateInfo && gateInfo.params > 0) {
-                console.log(`Gate ${gateName} requires parameters, showing dialog`);
-                this.showParameterDialog(gateName, targetQubits, params.position || 0);
-            } else {
-                console.log(`Adding gate ${gateName} directly to circuit`);
-                this.circuitBuilder.addGate(gateName, targetQubits, params);
-                this.circuit = this.circuitBuilder.circuit; // Get the updated circuit
-                console.log(`Added gate ${gateName} to qubits [${targetQubits.join(', ')}]`);
-                console.log('Circuit now has', (this.circuit.gates || []).length, 'gates');
+            // Handle classical gates directly without going through quantum gate system
+            if (['NOT', 'AND', 'OR'].includes(gateName)) {
+                console.log(`Adding classical gate ${gateName}: inputs [${targetQubits.join(', ')}] → output ${params.outputQubit}`);
+                
+                // Create a special classical gate object
+                const classicalGate = {
+                    name: gateName,
+                    type: 'classical',
+                    inputQubits: targetQubits,
+                    outputQubit: params.outputQubit,
+                    position: params.position,
+                    matrix: this.createClassicalGateMatrix(gateName)
+                };
+                
+                // Add to both display and execution circuits
+                if (!this.circuit.gates) this.circuit.gates = [];
+                this.circuit.gates.push(classicalGate);
+                
+                if (!this.circuitBuilder.circuit.gates) {
+                    this.circuitBuilder.circuit.gates = [];
+                }
+                this.circuitBuilder.circuit.gates.push(classicalGate);
+                
+                // Update displays
                 this.updateCircuitDisplay();
                 this.updateVisualization();
+                this.showNotification(`Added ${gateName} gate`, 'success');
+                return;
             }
+            
+            // For quantum gates, use the existing logic
+            const gateInfo = QuantumGates.getGateInfo(gateName);
+            if (!gateInfo) {
+                throw new Error(`Unknown gate: ${gateName}`);
+            }
+            
+            if (targetQubits.length !== gateInfo.qubits) {
+                throw new Error(`Gate ${gateName} requires ${gateInfo.qubits} qubits, got ${targetQubits.length}`);
+            }
+            
+            console.log(`Adding gate ${gateName} to qubits [${targetQubits.join(', ')}]`);
+            this.circuitBuilder.addGate(gateName, targetQubits, params);
+            this.circuit = this.circuitBuilder.circuit; // Get the updated circuit
+            console.log(`Added gate ${gateName} to qubits [${targetQubits.join(', ')}]`);
+            console.log('Circuit now has', (this.circuit.gates || []).length, 'gates');
+            
+            // Update displays
+            this.updateCircuitDisplay();
+            this.updateVisualization();
+            this.showNotification(`Added ${gateName} gate`, 'success');
         } catch (error) {
             console.error(`Error adding gate ${gateName}:`, error);
             this.showError(`Failed to add gate ${gateName}: ${error.message}`);
@@ -659,8 +723,10 @@ class QuantumLab {
             // Add gate slots - calculate based on actual gate positions
             const allPositions = new Set();
             (this.circuit.gates || []).forEach(gate => {
-                const position = gate.params.position || 0;
-                if (gate.targetQubits.includes(i)) {
+                // Handle both quantum gates (gate.params.position) and classical gates (gate.position)
+                const position = gate.params?.position || gate.position || 0;
+                const gateQubitsList = gate.targetQubits || gate.inputQubits || [];
+                if (gateQubitsList.includes(i)) {
                     allPositions.add(position);
                     console.log(`Gate ${gate.name} on qubit ${i} at position ${position}`);
                 }
@@ -728,8 +794,10 @@ class QuantumLab {
     getGateAtPosition(qubit, position) {
         // Find gate at specific position for this qubit
         const gate = (this.circuit.gates || []).find(gate => {
-            const gatePosition = gate.params.position || gate.targetQubits.indexOf(qubit);
-            return gate.targetQubits.includes(qubit) && gatePosition === position;
+            // Handle both quantum gates (gate.params.position) and classical gates (gate.position)
+            const gatePosition = gate.params?.position || gate.position || 0;
+            const gateQubitsForPosition = gate.targetQubits || gate.inputQubits || [];
+            return gateQubitsForPosition.includes(qubit) && gatePosition === position;
         });
         console.log(`getGateAtPosition: qubit=${qubit}, position=${position}, found=${gate ? gate.name : 'null'}`);
         return gate || null;
@@ -1108,6 +1176,34 @@ class QuantumLab {
     showError(message) {
         this.showNotification(message, 'error');
         console.error('QuantumLab Error:', message);
+    }
+    
+    createClassicalGateMatrix(gateName) {
+        // Create a simplified matrix representation for classical gates
+        // For now, implement AND gate as quantum matrix to get it working
+        const size = 4; // 2 qubits = 4x4 matrix
+        const matrix = Array(size).fill().map(() => Array(size).fill().map(() => new Complex(0, 0)));
+        
+        if (gateName === 'AND') {
+            // AND truth table: 00→0, 01→0, 10→0, 11→1 (output on first qubit)
+            // Clear first qubit (output) and set based on second qubit
+            matrix[0][0] = new Complex(1, 0); // |00⟩ → |00⟩ (clear output)
+            matrix[1][1] = new Complex(1, 0); // |01⟩ → |01⟩ (clear output) 
+            matrix[2][2] = new Complex(1, 0); // |10⟩ → |10⟩ (clear output)
+            matrix[3][3] = new Complex(1, 0); // |11⟩ → |11⟩ (set output = 1)
+        } else if (gateName === 'OR') {
+            // OR truth table: 00→0, 01→1, 10→1, 11→1
+            matrix[0][0] = new Complex(1, 0); // |00⟩ → |00⟩
+            matrix[1][1] = new Complex(1, 0); // |01⟩ → |01⟩
+            matrix[2][2] = new Complex(1, 0); // |10⟩ → |10⟩
+            matrix[3][3] = new Complex(1, 0); // |11⟩ → |11⟩
+        } else if (gateName === 'NOT') {
+            // NOT truth table: 0→1, 1→0
+            matrix[0][1] = new Complex(1, 0); // |0⟩ → |1⟩
+            matrix[1][0] = new Complex(1, 0); // |1⟩ → |1⟩
+        }
+        
+        return Matrix.fromArray(matrix);
     }
     
     // Utility methods
