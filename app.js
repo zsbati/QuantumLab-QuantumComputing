@@ -467,8 +467,30 @@ class QuantumLab {
             
             // Check if this is a multi-qubit gate
             const multiQubitGates = ['CNOT', 'CZ', 'SWAP'];
+            const classicalGates = ['NOT', 'AND', 'OR'];
             
-            if (multiQubitGates.includes(this.draggedGate.name)) {
+            if (classicalGates.includes(this.draggedGate.name)) {
+                // Classical gates section - restore basic structure first
+                if (this.numQubits >= 1) {
+                    if (this.draggedGate.name === 'NOT') {
+                        // NOT gate: 1 input → 1 output
+                        console.log(`Adding classical NOT gate at position ${position}: input ${qubitIndex} → output ${qubitIndex}`);
+                        this.addGateToCircuit(this.draggedGate.name, [qubitIndex], { 
+                            position, 
+                            outputQubit: qubitIndex,
+                            inputQubits: [qubitIndex],
+                            type: 'classical'
+                        });
+                    } else {
+                        // AND/OR gates: 2 input qubits → 1 output qubit
+                        this.showError(`Classical ${this.draggedGate.name} gate temporarily disabled - will be re-enabled soon`);
+                        return;
+                    }
+                } else {
+                    const minQubits = this.draggedGate.name === 'NOT' ? 1 : 2;
+                    this.showError(`Classical ${this.draggedGate.name} gate requires at least ${minQubits} qubits`);
+                }
+            } else if (multiQubitGates.includes(this.draggedGate.name)) {
                 // For multi-qubit gates, we need at least 2 qubits
                 if (this.numQubits >= 2) {
                     // Determine target qubits based on drop position
