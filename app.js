@@ -283,29 +283,36 @@ class QuantumLab {
     }
     
     setPresetState(qubitIndex, state) {
-        const inputs = document.querySelectorAll(`[data-qubit="${qubitIndex}"]`);
+        const amp0Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="0"]`);
+        const amp1Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="1"]`);
+        
+        if (!amp0Input || !amp1Input) {
+            console.error(`Inputs for qubit ${qubitIndex} not found`);
+            return;
+        }
         
         switch (state) {
             case '|0⟩':
-                inputs[0].value = '1';
-                inputs[1].value = '0';
+                amp0Input.value = '1';
+                amp1Input.value = '0';
                 break;
             case '|1⟩':
-                inputs[0].value = '0';
-                inputs[1].value = '1';
+                amp0Input.value = '0';
+                amp1Input.value = '1';
                 break;
             case '|+⟩':
-                inputs[0].value = '0.7071';
-                inputs[1].value = '0.7071';
+                amp0Input.value = '0.7071';
+                amp1Input.value = '0.7071';
                 break;
             case '|-⟩':
-                inputs[0].value = '0.7071';
-                inputs[1].value = '-0.7071';
+                amp0Input.value = '0.7071';
+                amp1Input.value = '-0.7071';
                 break;
         }
         
         // Trigger validation
-        inputs.forEach(input => this.validateComplexInput(input));
+        this.validateComplexInput(amp0Input);
+        this.validateComplexInput(amp1Input);
     }
     
     resetInputState() {
