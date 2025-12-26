@@ -72,11 +72,11 @@ class Matrix {
     constructor(rows, cols, data = null) {
         this.rows = rows;
         this.cols = cols;
-        
+
         if (data) {
             this.data = data;
         } else {
-            this.data = Array(rows).fill().map(() => 
+            this.data = Array(rows).fill().map(() =>
                 Array(cols).fill().map(() => new Complex(0, 0))
             );
         }
@@ -97,7 +97,7 @@ class Matrix {
     static fromArray(arr) {
         const rows = arr.length;
         const cols = arr[0].length;
-        const data = arr.map(row => 
+        const data = arr.map(row =>
             row.map(val => {
                 if (val instanceof Complex) return val;
                 if (typeof val === 'number') return new Complex(val, 0);
@@ -121,7 +121,7 @@ class Matrix {
         }
 
         const result = new Matrix(this.rows, other.cols);
-        
+
         for (let i = 0; i < this.rows; i++) {
             for (let j = 0; j < other.cols; j++) {
                 let sum = new Complex(0, 0);
@@ -131,7 +131,7 @@ class Matrix {
                 result.data[i][j] = sum;
             }
         }
-        
+
         return result;
     }
 
@@ -186,7 +186,7 @@ class Matrix {
     isUnitary(tolerance = 1e-10) {
         const product = this.multiply(this.dagger());
         const identity = Matrix.identity(this.rows);
-        
+
         for (let i = 0; i < this.rows; i++) {
             for (let j = 0; j < this.cols; j++) {
                 const diff = product.data[i][j].subtract(identity.data[i][j]);
@@ -210,16 +210,16 @@ class Matrix {
         if (this.rows !== this.cols) {
             throw new Error("Determinant only defined for square matrices");
         }
-        
+
         if (this.rows === 1) {
             return this.data[0][0];
         }
-        
+
         if (this.rows === 2) {
             return this.data[0][0].multiply(this.data[1][1])
-                   .subtract(this.data[0][1].multiply(this.data[1][0]));
+                .subtract(this.data[0][1].multiply(this.data[1][0]));
         }
-        
+
         // Laplace expansion for larger matrices
         let det = new Complex(0, 0);
         for (let j = 0; j < this.cols; j++) {
@@ -246,14 +246,14 @@ class Matrix {
     }
 
     clone() {
-        const data = this.data.map(row => 
+        const data = this.data.map(row =>
             row.map(val => new Complex(val.real, val.imag))
         );
         return new Matrix(this.rows, this.cols, data);
     }
 
     toString() {
-        const rows = this.data.map(row => 
+        const rows = this.data.map(row =>
             '[' + row.map(val => val.toString()).join(', ') + ']'
         );
         return '[' + rows.join(',\n ') + ']';
@@ -265,40 +265,40 @@ class QuantumState {
         this.numQubits = numQubits;
         this.dimension = Math.pow(2, numQubits);
         this.amplitudes = Array(this.dimension).fill().map(() => new Complex(0, 0));
-        
+
         // Initialize to |0...0⟩ state
         this.amplitudes[0] = new Complex(1, 0);
     }
 
     static fromAmplitudes(amplitudes) {
         console.log('fromAmplitudes input:', amplitudes.map(a => a.toString()));
-        
+
         const numQubits = Math.log2(amplitudes.length);
         if (!Number.isInteger(numQubits)) {
             throw new Error("Number of amplitudes must be a power of 2");
         }
-        
+
         // Check for zero state before creating state
         const norm = Math.sqrt(amplitudes.reduce((sum, amp) => {
             const magnitude = amp instanceof Complex ? amp.magnitude() : Math.abs(amp);
             return sum + magnitude * magnitude;
         }, 0));
-        
+
         if (norm < 1e-10) {
             throw new Error("Cannot normalize zero vector - all amplitudes are zero");
         }
-        
+
         const state = new QuantumState(numQubits);
         state.amplitudes = amplitudes.map(amp => {
             if (amp instanceof Complex) return amp.clone(); // Clone to preserve original
             if (typeof amp === 'number') return new Complex(amp, 0);
             return new Complex(0, 0);
         });
-        
+
         console.log('Before normalize:', state.amplitudes.map(a => a.toString()));
         const normalizedState = state.normalize();
         console.log('After normalize:', normalizedState.amplitudes.map(a => a.toString()));
-        
+
         return normalizedState;
     }
 
@@ -319,15 +319,15 @@ class QuantumState {
         const norm = Math.sqrt(this.amplitudes.reduce((sum, amp) => {
             return sum + amp.magnitude() * amp.magnitude();
         }, 0));
-        
+
         if (norm < 1e-10) {
             throw new Error("Cannot normalize zero vector");
         }
-        
-        this.amplitudes = this.amplitudes.map(amp => 
+
+        this.amplitudes = this.amplitudes.map(amp =>
             amp.divide(new Complex(norm, 0))
         );
-        
+
         return this;
     }
 
@@ -335,20 +335,20 @@ class QuantumState {
         if (!(gateMatrix instanceof Matrix)) {
             throw new Error("Gate must be a Matrix");
         }
-        
+
         // Create full system matrix for the gate
         const fullMatrix = this.createFullGateMatrix(gateMatrix, targetQubits);
-        
+
         // Apply the gate: |ψ'⟩ = U|ψ⟩
         const newAmplitudes = Array(this.dimension).fill().map(() => new Complex(0, 0));
-        
+
         for (let i = 0; i < this.dimension; i++) {
             for (let j = 0; j < this.dimension; j++) {
                 const term = fullMatrix.data[i][j].multiply(this.amplitudes[j]);
                 newAmplitudes[i] = newAmplitudes[i].add(term);
             }
         }
-        
+
         this.amplitudes = newAmplitudes;
         return this;
     }
@@ -356,27 +356,27 @@ class QuantumState {
     createFullGateMatrix(gateMatrix, targetQubits) {
         const gateSize = gateMatrix.rows;
         const gateQubits = Math.log2(gateSize);
-        
+
         if (!Number.isInteger(gateQubits)) {
             throw new Error("Gate matrix size must be a power of 2");
         }
-        
+
         if (targetQubits.length !== gateQubits) {
             throw new Error("Number of target qubits must match gate size");
         }
-        
+
         // Create identity matrix for all qubits
         let fullMatrix = Matrix.identity(this.dimension);
-        
+
         // Apply gate to target qubits using tensor product
-        const allQubits = Array.from({length: this.numQubits}, (_, i) => i);
+        const allQubits = Array.from({ length: this.numQubits }, (_, i) => i);
         const controlQubits = allQubits.filter(q => !targetQubits.includes(q));
-        
+
         // Build the full matrix using tensor products
         for (let i = 0; i < this.dimension; i++) {
             for (let j = 0; j < this.dimension; j++) {
                 let amplitude = new Complex(1, 0);
-                
+
                 // Check if this transition is allowed
                 let allowed = true;
                 for (const controlQubit of controlQubits) {
@@ -387,40 +387,40 @@ class QuantumState {
                         break;
                     }
                 }
-                
+
                 if (!allowed) {
                     fullMatrix.data[i][j] = new Complex(0, 0);
                     continue;
                 }
-                
+
                 // Extract target qubit indices
                 let targetIndex = 0;
                 let targetJIndex = 0;
-                
+
                 for (let k = 0; k < targetQubits.length; k++) {
                     const qubit = targetQubits[k];
                     const iBit = (i >> (this.numQubits - 1 - qubit)) & 1;
                     const jBit = (j >> (this.numQubits - 1 - qubit)) & 1;
-                    
+
                     targetIndex = (targetIndex << 1) | iBit;
                     targetJIndex = (targetJIndex << 1) | jBit;
                 }
-                
+
                 fullMatrix.data[i][j] = gateMatrix.data[targetIndex][targetJIndex];
             }
         }
-        
+
         return fullMatrix;
     }
 
     measure() {
         // Calculate probabilities
         const probabilities = this.amplitudes.map(amp => amp.magnitude() * amp.magnitude());
-        
+
         // Random measurement
         const random = Math.random();
         let cumulative = 0;
-        
+
         for (let i = 0; i < probabilities.length; i++) {
             cumulative += probabilities[i];
             if (random < cumulative) {
@@ -434,7 +434,7 @@ class QuantumState {
                 };
             }
         }
-        
+
         // Fallback (shouldn't happen due to floating point precision)
         const lastIndex = probabilities.length - 1;
         this.amplitudes = Array(this.dimension).fill().map(() => new Complex(0, 0));
@@ -452,13 +452,13 @@ class QuantumState {
 
     getDensityMatrix() {
         const density = new Matrix(this.dimension, this.dimension);
-        
+
         for (let i = 0; i < this.dimension; i++) {
             for (let j = 0; j < this.dimension; j++) {
                 density.data[i][j] = this.amplitudes[i].multiply(this.amplitudes[j].conjugate());
             }
         }
-        
+
         return density;
     }
 
@@ -466,12 +466,12 @@ class QuantumState {
         if (this.numQubits !== other.numQubits) {
             throw new Error("States must have the same number of qubits");
         }
-        
+
         let innerProduct = new Complex(0, 0);
         for (let i = 0; i < this.dimension; i++) {
             innerProduct = innerProduct.add(this.amplitudes[i].multiply(other.amplitudes[i].conjugate()));
         }
-        
+
         return innerProduct.magnitude();
     }
 
@@ -484,7 +484,7 @@ class QuantumState {
     toString() {
         let result = '|ψ⟩ = ';
         const terms = [];
-        
+
         for (let i = 0; i < this.amplitudes.length; i++) {
             const amp = this.amplitudes[i];
             if (amp.magnitude() > 1e-10) {
@@ -492,7 +492,7 @@ class QuantumState {
                 terms.push(`${amp.toString()}|${bitString}⟩`);
             }
         }
-        
+
         return result + terms.join(' + ');
     }
 }
@@ -502,15 +502,15 @@ function kroneckerProduct(matrices) {
     if (matrices.length === 0) {
         throw new Error("At least one matrix required");
     }
-    
+
     let result = matrices[0].clone();
-    
+
     for (let i = 1; i < matrices.length; i++) {
         const matrix = matrices[i];
         const newRows = result.rows * matrix.rows;
         const newCols = result.cols * matrix.cols;
         const newMatrix = new Matrix(newRows, newCols);
-        
+
         for (let i = 0; i < result.rows; i++) {
             for (let j = 0; j < result.cols; j++) {
                 for (let k = 0; k < matrix.rows; k++) {
@@ -522,10 +522,10 @@ function kroneckerProduct(matrices) {
                 }
             }
         }
-        
+
         result = newMatrix;
     }
-    
+
     return result;
 }
 

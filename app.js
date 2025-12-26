@@ -19,6 +19,7 @@ class QuantumLab {
     }
     
     initializeEventListeners() {
+        console.log('initializeEventListeners() called!');
         // Circuit controls
         document.getElementById('add-qubit').addEventListener('click', () => this.addQubit());
         document.getElementById('clear-circuit').addEventListener('click', () => this.clearCircuit());
@@ -66,6 +67,7 @@ class QuantumLab {
     }
     
     setupDragAndDrop() {
+        console.log('setupDragAndDrop() called!');
         // Setup input state controls
         this.setupInputStateControls();
         
@@ -107,12 +109,22 @@ class QuantumLab {
                     <div class="qubit-input" data-qubit="${i}">
                         <div class="basis-controls">
                             <div class="basis-state">
-                                <label for="qubit-${i}-0">Qubit ${i} |0⟩ amplitude:</label>
-                                <input type="text" id="qubit-${i}-0" name="qubit-${i}-0" class="complex-input" data-qubit="${i}" data-basis="0" value="1" placeholder="a+bi">
+                                <label for="qubit-${i}-0-real">Qubit ${i} |0⟩ amplitude:</label>
+                                <div class="complex-input-group">
+                                    <input type="number" id="qubit-${i}-0-real" name="qubit-${i}-0-real" class="real-input" data-qubit="${i}" data-basis="0" data-part="real" value="1" step="0.0001" placeholder="Real">
+                                    <span class="complex-separator">+</span>
+                                    <input type="number" id="qubit-${i}-0-imag" name="qubit-${i}-0-imag" class="imag-input" data-qubit="${i}" data-basis="0" data-part="imag" value="0" step="0.0001" placeholder="Imag">
+                                    <span class="complex-unit">i</span>
+                                </div>
                             </div>
                             <div class="basis-state">
-                                <label for="qubit-${i}-1">Qubit ${i} |1⟩ amplitude:</label>
-                                <input type="text" id="qubit-${i}-1" name="qubit-${i}-1" class="complex-input" data-qubit="${i}" data-basis="1" value="0" placeholder="a+bi">
+                                <label for="qubit-${i}-1-real">Qubit ${i} |1⟩ amplitude:</label>
+                                <div class="complex-input-group">
+                                    <input type="number" id="qubit-${i}-1-real" name="qubit-${i}-1-real" class="real-input" data-qubit="${i}" data-basis="1" data-part="real" value="0" step="0.0001" placeholder="Real">
+                                    <span class="complex-separator">+</span>
+                                    <input type="number" id="qubit-${i}-1-imag" name="qubit-${i}-1-imag" class="imag-input" data-qubit="${i}" data-basis="1" data-part="imag" value="0" step="0.0001" placeholder="Imag">
+                                    <span class="complex-unit">i</span>
+                                </div>
                             </div>
                         </div>
                         <div class="preset-states">
@@ -141,18 +153,48 @@ class QuantumLab {
         }
         
         // Add event listeners
-        document.getElementById('set-input-state').addEventListener('click', () => this.setInputState());
-        document.getElementById('reset-input-state').addEventListener('click', () => this.resetInputState());
-        document.getElementById('random-input-state').addEventListener('click', () => this.setRandomInputState());
+        console.log('Adding input state event listeners...');
+        const setBtn = document.getElementById('set-input-state');
+        const resetBtn = document.getElementById('reset-input-state');
+        const randomBtn = document.getElementById('random-input-state');
+        
+        console.log('Buttons found:', {setBtn, resetBtn, randomBtn});
+        
+        if (setBtn) {
+            console.log('Adding set button listener');
+            setBtn.addEventListener('click', () => {
+                console.log('Set button clicked!');
+                this.setInputState();
+            });
+        }
+        if (resetBtn) resetBtn.addEventListener('click', () => this.resetInputState());
+        if (randomBtn) randomBtn.addEventListener('click', () => this.setRandomInputState());
         
         // Add complex number input validation
         this.setupComplexInputValidation();
     }
     
+    validateNumberInput(input) {
+        const value = input.value.trim();
+        if (value === '') {
+            input.style.borderColor = '#10b981';
+            return true;
+        }
+        
+        const num = parseFloat(value);
+        if (isNaN(num)) {
+            input.style.borderColor = '#ef4444';
+            return false;
+        }
+        
+        input.style.borderColor = '#10b981';
+        return true;
+    }
+    
     setupComplexInputValidation() {
-        document.querySelectorAll('.complex-input').forEach(input => {
+        document.querySelectorAll('.real-input, .imag-input').forEach(input => {
             input.addEventListener('input', (e) => {
-                this.validateComplexInput(e.target);
+                this.validateNumberInput(e.target);
             });
         });
         
@@ -181,6 +223,7 @@ class QuantumLab {
     }
     
     parseComplex(value) {
+        console.log(`Parsing value: "${value}"`);
         if (value === '' || value === '0') return new Complex(0, 0);
         if (value === '1') return new Complex(1, 0);
         if (value === 'i') return new Complex(0, 1);
@@ -192,27 +235,51 @@ class QuantumLab {
         if (match) {
             const real = parseFloat(match[1]) || 0;
             const imag = parseFloat(match[2]) || 0;
+            console.log(`Complex regex match: real=${real}, imag=${imag}`);
             return new Complex(real, imag);
         }
         
+        // Handle formats like "1+i", "1-i", "1+2i", "1-2i", "i", "-i"
+        const simpleComplexRegex = /^([+-]?\d*\.?\d*)([+-])i$/;
+        const simpleMatch = value.match(simpleComplexRegex);
+        
+        if (simpleMatch) {
+            const real = parseFloat(simpleMatch[1]) || 0;
+            const imag = simpleMatch[2] === '+' ? 1 : -1;
+            console.log(`Simple complex regex match: real=${real}, imag=${imag}`);
+            return new Complex(real, imag);
+        }
+        
+        // Handle formats like "+i", "-i" (no real part)
+        const pureImagRegex = /^([+-])i$/;
+        const pureImagMatch = value.match(pureImagRegex);
+        
+        if (pureImagMatch) {
+            const imag = pureImagMatch[1] === '+' ? 1 : -1;
+            console.log(`Pure imaginary regex match: imag=${imag}`);
+            return new Complex(0, imag);
+        }
+        
+        console.log(`No regex match for "${value}", treating as pure real number: ${parseFloat(value)}`);
         // Handle pure real numbers
         const real = parseFloat(value);
         return new Complex(real, 0);
     }
     
     setInputState() {
+        console.log('setInputState() called!');
         // Validate all inputs
-        const inputs = document.querySelectorAll('.complex-input');
+        const inputs = document.querySelectorAll('.real-input, .imag-input');
         let isValid = true;
         
         inputs.forEach(input => {
-            if (!this.validateComplexInput(input)) {
+            if (!this.validateNumberInput(input)) {
                 isValid = false;
             }
         });
         
         if (!isValid) {
-            this.showError('Invalid complex numbers in input state');
+            this.showError('Invalid numbers in input state');
             return;
         }
         
@@ -220,12 +287,20 @@ class QuantumLab {
         const amplitudes = [];
         
         for (let i = 0; i < this.numQubits; i++) {
-            const amp0 = this.parseComplex(document.querySelector(`[data-qubit="${i}"][data-basis="0"]`).value);
-            const amp1 = this.parseComplex(document.querySelector(`[data-qubit="${i}"][data-basis="1"]`).value);
+            const real0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="real"]`);
+            const imag0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="imag"]`);
+            const real1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="real"]`);
+            const imag1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="imag"]`);
+            
+            const amp0 = new Complex(parseFloat(real0Input.value) || 0, parseFloat(imag0Input.value) || 0);
+            const amp1 = new Complex(parseFloat(real1Input.value) || 0, parseFloat(imag1Input.value) || 0);
+            
+            console.log(`Qubit ${i}: |0⟩=${amp0.toString()}, |1⟩=${amp1.toString()}`);
             
             // For multi-qubit states, we need to compute the tensor product
             if (i === 0) {
                 amplitudes.push(amp0, amp1);
+                console.log(`Initial amplitudes: [${amplitudes[0].toString()}, ${amplitudes[1].toString()}]`);
             } else {
                 const newAmplitudes = [];
                 for (let j = 0; j < amplitudes.length; j++) {
@@ -233,8 +308,11 @@ class QuantumLab {
                     newAmplitudes.push(amplitudes[j].multiply(amp1));
                 }
                 amplitudes.splice(0, amplitudes.length, ...newAmplitudes);
+                console.log(`After qubit ${i}: [${amplitudes.map(a => a.toString()).join(', ')}]`);
             }
         }
+        
+        console.log(`Final amplitudes before normalization: [${amplitudes.map(a => a.toString()).join(', ')}]`);
         
         // Check for zero state BEFORE normalization
         const norm = Math.sqrt(amplitudes.reduce((sum, amp) => sum + amp.magnitude() ** 2, 0));
@@ -283,36 +361,48 @@ class QuantumLab {
     }
     
     setPresetState(qubitIndex, state) {
-        const amp0Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="0"]`);
-        const amp1Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="1"]`);
+        const real0Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="0"][data-part="real"]`);
+        const imag0Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="0"][data-part="imag"]`);
+        const real1Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="1"][data-part="real"]`);
+        const imag1Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="1"][data-part="imag"]`);
         
-        if (!amp0Input || !amp1Input) {
+        if (!real0Input || !imag0Input || !real1Input || !imag1Input) {
             console.error(`Inputs for qubit ${qubitIndex} not found`);
             return;
         }
         
         switch (state) {
             case '|0⟩':
-                amp0Input.value = '1';
-                amp1Input.value = '0';
+                real0Input.value = '1';
+                imag0Input.value = '0';
+                real1Input.value = '0';
+                imag1Input.value = '0';
                 break;
             case '|1⟩':
-                amp0Input.value = '0';
-                amp1Input.value = '1';
+                real0Input.value = '0';
+                imag0Input.value = '0';
+                real1Input.value = '1';
+                imag1Input.value = '0';
                 break;
             case '|+⟩':
-                amp0Input.value = '0.7071';
-                amp1Input.value = '0.7071';
+                real0Input.value = '0.7071';
+                imag0Input.value = '0';
+                real1Input.value = '0.7071';
+                imag1Input.value = '0';
                 break;
             case '|-⟩':
-                amp0Input.value = '0.7071';
-                amp1Input.value = '-0.7071';
+                real0Input.value = '0.7071';
+                imag0Input.value = '0';
+                real1Input.value = '-0.7071';
+                imag1Input.value = '0';
                 break;
         }
         
         // Trigger validation
-        this.validateComplexInput(amp0Input);
-        this.validateComplexInput(amp1Input);
+        this.validateNumberInput(real0Input);
+        this.validateNumberInput(imag0Input);
+        this.validateNumberInput(real1Input);
+        this.validateNumberInput(imag1Input);
     }
     
     resetInputState() {
