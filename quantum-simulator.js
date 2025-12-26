@@ -224,6 +224,53 @@ class QuantumCircuit {
                 
                 console.log(`AND gate result: state ${targetIndex.toString(2).padStart(numQubits, '0')}`);
             }
+        } else if (gate.name === 'OR') {
+            // OR gate: output = input1 OR input2 (measurement-based approach)
+            const inputQubit1 = gate.inputQubits[0];
+            const inputQubit2 = gate.inputQubits[1];
+            const outputQubit = gate.outputQubit;
+            
+            console.log(`OR gate: input qubits=[${inputQubit1}, ${inputQubit2}], output qubit=${outputQubit}`);
+            
+            // For definite states (like |00⟩, |01⟩, |10⟩, |11⟩), just apply classical logic
+            const numQubits = this.state.numQubits;
+            const dimension = Math.pow(2, numQubits);
+            
+            // Find which basis state we're in
+            let stateIndex = -1;
+            for (let i = 0; i < dimension; i++) {
+                if (this.state.amplitudes[i].magnitude() > 0.9) {
+                    stateIndex = i;
+                    break;
+                }
+            }
+            
+            if (stateIndex >= 0) {
+                // Extract bit values
+                const bit1 = (stateIndex >> (numQubits - 1 - inputQubit1)) & 1;
+                const bit2 = (stateIndex >> (numQubits - 1 - inputQubit2)) & 1;
+                const orResult = bit1 | bit2;
+                
+                console.log(`OR gate: state=${stateIndex.toString(2).padStart(numQubits, '0')}, bit1=${bit1}, bit2=${bit2}, orResult=${orResult}`);
+                
+                // Create new state with OR result
+                const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
+                
+                // Build target state index: same as input but with OR result on output qubit
+                let targetIndex = stateIndex;
+                const outputBitMask = 1 << (numQubits - 1 - outputQubit);
+                const orResultMask = orResult << (numQubits - 1 - outputQubit);
+                
+                // Clear the output bit position
+                targetIndex = targetIndex & ~outputBitMask;
+                // Set the OR result on the output bit position
+                targetIndex = targetIndex | orResultMask;
+                
+                newAmplitudes[targetIndex] = new Complex(1, 0);
+                this.state.amplitudes = newAmplitudes;
+                
+                console.log(`OR gate result: state ${targetIndex.toString(2).padStart(numQubits, '0')}`);
+            }
         }
     }
 
