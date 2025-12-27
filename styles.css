@@ -596,3 +596,18 @@ canvas {
     margin-top: 2rem;
     justify-content: flex-end;
 }
+
+/* Bloch Sphere Container - Scrollable */
+.bloch-sphere-container {
+    max-width: 600px;
+    max-height: 500px;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: white;
+}
+
+.bloch-sphere-container canvas {
+    display: block;
+}

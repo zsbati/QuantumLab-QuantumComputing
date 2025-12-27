@@ -5,8 +5,8 @@
 
 class QuantumVisualizer {
     constructor() {
-        this.canvas = null;
-        this.ctx = null;
+        this.canvases = {};
+        this.contexts = {};
         this.colors = {
             primary: '#6366f1',
             secondary: '#8b5cf6',
@@ -20,9 +20,43 @@ class QuantumVisualizer {
     }
     
     initializeCanvas(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        
+        // Store canvas and context by ID
+        this.canvases[canvasId] = canvas;
+        this.contexts[canvasId] = ctx;
+        
         return this;
+    }
+    
+    setActiveCanvas(canvasId) {
+        this.canvas = this.canvases[canvasId];
+        this.ctx = this.contexts[canvasId];
+        return this;
+    }
+    
+    resizeBlochCanvas(numQubits) {
+        if (numQubits === 1) {
+            // Single qubit - keep original size
+            this.canvas.width = 300;
+            this.canvas.height = 300;
+        } else {
+            // Multiple qubits - calculate optimal size
+            const cols = Math.ceil(Math.sqrt(numQubits));
+            const rows = Math.ceil(numQubits / cols);
+            
+            // Each sphere needs minimum 120px to be readable
+            const minSphereSize = 120;
+            const padding = 40;
+            
+            const newWidth = (cols * minSphereSize) + (padding * 2);
+            const newHeight = (rows * minSphereSize) + (padding * 2);
+            
+            // Cap at reasonable maximums (container will scroll if needed)
+            this.canvas.width = Math.min(newWidth, 800);
+            this.canvas.height = Math.min(newHeight, 800);
+        }
     }
     
     clear() {
@@ -32,9 +66,11 @@ class QuantumVisualizer {
     
     // State Vector Visualization
     drawStateVector(stateVector) {
+        this.setActiveCanvas('state-vector-canvas');
         if (!this.ctx) return;
         
         this.clear();
+        // ... rest of the method remains the same
         
         const padding = 40;
         const width = this.canvas.width - 2 * padding;
@@ -83,12 +119,16 @@ class QuantumVisualizer {
     
     // Bloch Sphere Visualization
     drawBlochSphere(stateVector) {
+        this.setActiveCanvas('bloch-sphere-canvas');
         if (!this.ctx) return;
-        
-        this.clear();
         
         // Calculate number of qubits from state vector length
         const numQubits = Math.log2(stateVector.length);
+        
+        // Dynamic canvas sizing based on qubit count
+        this.resizeBlochCanvas(numQubits);
+        
+        this.clear();
         
         if (numQubits === 1) {
             // Single qubit - draw one large sphere
@@ -343,6 +383,7 @@ class QuantumVisualizer {
     
     // Probability Distribution Visualization
     drawProbabilityDistribution(stateVector) {
+        this.setActiveCanvas('probabilities-canvas');
         if (!this.ctx) return;
         
         this.clear();
@@ -498,6 +539,7 @@ class QuantumVisualizer {
     
     // Performance Chart
     drawPerformanceChart(benchmarkData) {
+        this.setActiveCanvas('benchmark-chart');
         if (!this.ctx) return;
         
         this.clear();

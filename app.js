@@ -168,7 +168,15 @@ class QuantumLab {
             });
         }
         if (resetBtn) resetBtn.addEventListener('click', () => this.resetInputState());
-        if (randomBtn) randomBtn.addEventListener('click', () => this.setRandomInputState());
+        if (randomBtn) {
+            console.log('Adding random button listener');
+            randomBtn.addEventListener('click', () => {
+                console.log('Random button clicked!');
+                this.setRandomInputState();
+            });
+        } else {
+            console.error('Random button not found!');
+        }
         
         // Add complex number input validation
         this.setupComplexInputValidation();
@@ -413,17 +421,50 @@ class QuantumLab {
     }
     
     setRandomInputState() {
+        console.log('setRandomInputState called');
         for (let i = 0; i < this.numQubits; i++) {
-            const inputs = document.querySelectorAll(`[data-qubit="${i}"]`);
+            // Get only the amplitude inputs for this qubit (real and imaginary parts)
+            const real0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="real"]`);
+            const imag0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="imag"]`);
+            const real1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="real"]`);
+            const imag1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="imag"]`);
+            
+            console.log(`Found inputs for qubit ${i}:`, {real0Input, imag0Input, real1Input, imag1Input});
+            
+            if (!real0Input || !imag0Input || !real1Input || !imag1Input) {
+                console.error(`Not all inputs found for qubit ${i}`);
+                continue;
+            }
+            
             // Generate random normalized amplitudes
             const theta = Math.random() * 2 * Math.PI;
             const phi = Math.random() * Math.PI;
             
-            inputs[0].value = `${Math.cos(theta/2).toFixed(3)}`;
-            inputs[1].value = `${Math.sin(theta/2) * Math.cos(phi).toFixed(3)}${Math.sin(theta/2) * Math.sin(phi) >= 0 ? '+' : ''}${Math.sin(theta/2) * Math.sin(phi).toFixed(3)}i`;
+            // Calculate components for |0⟩ amplitude (real only)
+            const real0 = Math.cos(theta/2);
             
-            inputs.forEach(input => this.validateComplexInput(input));
+            // Calculate components for |1⟩ amplitude (complex)
+            const real1 = Math.sin(theta/2) * Math.cos(phi);
+            const imag1 = Math.sin(theta/2) * Math.sin(phi);
+            
+            console.log(`Qubit ${i}: |0⟩=${real0}, |1⟩=${real1}+${imag1}i`);
+            
+            // Set |0⟩ amplitude (real only)
+            real0Input.value = real0.toFixed(3);
+            imag0Input.value = '0';
+            
+            // Set |1⟩ amplitude (complex)
+            real1Input.value = real1.toFixed(3);
+            imag1Input.value = imag1.toFixed(3);
+            
+            console.log(`Qubit ${i}: Set values to [|0⟩=${real0Input.value}+${imag0Input.value}i, |1⟩=${real1Input.value}+${imag1Input.value}i]`);
+            
+            // Validate inputs
+            [real0Input, imag0Input, real1Input, imag1Input].forEach(input => {
+                if (input) this.validateComplexInput(input);
+            });
         }
+        console.log('Calling setInputState()');
         this.setInputState();
     }
     
@@ -548,7 +589,16 @@ class QuantumLab {
             } else {
                 // Single qubit gate
                 console.log(`Adding single-qubit gate ${this.draggedGate.name} to qubit ${qubitIndex} at position ${position}`);
-                this.addGateToCircuit(this.draggedGate.name, [qubitIndex], { position });
+                
+                // Check if gate requires parameters (like rotation gates)
+                const gateInfo = QuantumGates.getGateInfo(this.draggedGate.name);
+                if (gateInfo && gateInfo.params > 0) {
+                    // Show parameter dialog for gates that require parameters
+                    this.showParameterDialog(this.draggedGate.name, [qubitIndex], position);
+                } else {
+                    // Add gate directly for gates without parameters
+                    this.addGateToCircuit(this.draggedGate.name, [qubitIndex], { position });
+                }
             }
         }
         
