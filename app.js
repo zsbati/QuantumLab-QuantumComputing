@@ -12,65 +12,65 @@ class QuantumLab {
         this.circuitBuilder = new CircuitBuilder();
         this.draggedGate = null;
         this.gateSlots = [];
-        
+
         this.initializeEventListeners();
         this.initializeVisualization();
         this.createInitialCircuit();
     }
-    
+
     initializeEventListeners() {
         console.log('initializeEventListeners() called!');
         // Circuit controls
         document.getElementById('add-qubit').addEventListener('click', () => this.addQubit());
         document.getElementById('clear-circuit').addEventListener('click', () => this.clearCircuit());
         document.getElementById('run-circuit').addEventListener('click', () => this.runCircuit());
-        
+
         // Algorithm examples
         this.setupAlgorithmExamples();
-        
+
         // Benchmarking
         document.getElementById('run-benchmark').addEventListener('click', () => this.runBenchmarks());
-        
+
         // Tab switching
         this.setupTabSwitching();
-        
+
         // Gate drag and drop (initialize after circuit is ready)
         this.setupDragAndDrop();
     }
-    
+
     initializeVisualization() {
         // Initialize all visualization canvases
         this.visualizer.initializeCanvas('state-vector-canvas');
         this.visualizer.initializeCanvas('bloch-sphere-canvas');
         this.visualizer.initializeCanvas('probabilities-canvas');
         this.visualizer.initializeCanvas('benchmark-chart');
-        
+
         // Start animation controller
         this.animationController.start();
     }
-    
+
     createInitialCircuit() {
         this.circuit = this.circuitBuilder.createCircuit(this.numQubits);
-        
+
         // Ensure the circuit has a state initialized
         if (!this.circuit.state) {
             this.circuit.state = new QuantumState(this.numQubits);
         }
-        
+
         this.updateCircuitDisplay();
         this.updateVisualization();
-        
+
         // Display initial state in correct notation
         const stateDisplay = document.getElementById('state-display');
         const initialState = '|0⟩'.repeat(this.numQubits);
         stateDisplay.textContent = `|ψ⟩ = ${initialState}`;
     }
-    
+
     setupDragAndDrop() {
         console.log('setupDragAndDrop() called!');
         // Setup input state controls
         this.setupInputStateControls();
-        
+
         // Setup gate dragging
         document.querySelectorAll('.gate').forEach(gate => {
             gate.addEventListener('dragstart', (e) => {
@@ -81,14 +81,14 @@ class QuantumLab {
                 e.dataTransfer.effectAllowed = 'copy';
             });
         });
-        
+
         // Setup circuit workspace
         const workspace = document.getElementById('circuit-workspace');
         workspace.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
         });
-        
+
         workspace.addEventListener('drop', (e) => {
             e.preventDefault();
             if (this.draggedGate) {
@@ -96,11 +96,11 @@ class QuantumLab {
             }
         });
     }
-    
+
     setupInputStateControls() {
         // Add input state controls to the dedicated input state panel
         const inputStatePanel = document.getElementById('input-state-form');
-        
+
         if (inputStatePanel) {
             // Generate qubit inputs dynamically based on current number of qubits
             let qubitInputsHTML = '';
@@ -136,7 +136,7 @@ class QuantumLab {
                     </div>
                 `;
             }
-            
+
             inputStatePanel.innerHTML = `
                 <div class="qubit-inputs">
                     ${qubitInputsHTML}
@@ -151,15 +151,15 @@ class QuantumLab {
                 </div>
             `;
         }
-        
+
         // Add event listeners
         console.log('Adding input state event listeners...');
         const setBtn = document.getElementById('set-input-state');
         const resetBtn = document.getElementById('reset-input-state');
         const randomBtn = document.getElementById('random-input-state');
-        
-        console.log('Buttons found:', {setBtn, resetBtn, randomBtn});
-        
+
+        console.log('Buttons found:', { setBtn, resetBtn, randomBtn });
+
         if (setBtn) {
             console.log('Adding set button listener');
             setBtn.addEventListener('click', () => {
@@ -177,134 +177,134 @@ class QuantumLab {
         } else {
             console.error('Random button not found!');
         }
-        
+
         // Add complex number input validation
         this.setupComplexInputValidation();
     }
-    
+
     validateNumberInput(input) {
         const value = input.value.trim();
         if (value === '') {
             input.style.borderColor = '#10b981';
             return true;
         }
-        
+
         const num = parseFloat(value);
         if (isNaN(num)) {
             input.style.borderColor = '#ef4444';
             return false;
         }
-        
+
         input.style.borderColor = '#10b981';
         return true;
     }
-    
+
     setupComplexInputValidation() {
         document.querySelectorAll('.real-input, .imag-input').forEach(input => {
             input.addEventListener('input', (e) => {
                 this.validateNumberInput(e.target);
             });
         });
-        
+
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.setPresetState(e.target.dataset.qubit, e.target.dataset.state);
             });
         });
     }
-    
+
     validateComplexInput(input) {
         const value = input.value.trim();
         if (value === '') return;
-        
+
         // Parse complex number formats: "a+bi", "a-bi", "bi", "a", "i"
         const complexRegex = /^([+-]?\d*\.?\d*)([+-]\d*\.?\d*)?i?$/;
         const match = value.match(complexRegex);
-        
+
         if (!match) {
             input.style.borderColor = '#ef4444';
             return false;
         }
-        
+
         input.style.borderColor = '#10b981';
         return true;
     }
-    
+
     parseComplex(value) {
         console.log(`Parsing value: "${value}"`);
         if (value === '' || value === '0') return new Complex(0, 0);
         if (value === '1') return new Complex(1, 0);
         if (value === 'i') return new Complex(0, 1);
         if (value === '-i') return new Complex(0, -1);
-        
+
         const complexRegex = /^([+-]?\d*\.?\d*)([+-]\d*\.?\d*)i$/;
         const match = value.match(complexRegex);
-        
+
         if (match) {
             const real = parseFloat(match[1]) || 0;
             const imag = parseFloat(match[2]) || 0;
             console.log(`Complex regex match: real=${real}, imag=${imag}`);
             return new Complex(real, imag);
         }
-        
+
         // Handle formats like "1+i", "1-i", "1+2i", "1-2i", "i", "-i"
         const simpleComplexRegex = /^([+-]?\d*\.?\d*)([+-])i$/;
         const simpleMatch = value.match(simpleComplexRegex);
-        
+
         if (simpleMatch) {
             const real = parseFloat(simpleMatch[1]) || 0;
             const imag = simpleMatch[2] === '+' ? 1 : -1;
             console.log(`Simple complex regex match: real=${real}, imag=${imag}`);
             return new Complex(real, imag);
         }
-        
+
         // Handle formats like "+i", "-i" (no real part)
         const pureImagRegex = /^([+-])i$/;
         const pureImagMatch = value.match(pureImagRegex);
-        
+
         if (pureImagMatch) {
             const imag = pureImagMatch[1] === '+' ? 1 : -1;
             console.log(`Pure imaginary regex match: imag=${imag}`);
             return new Complex(0, imag);
         }
-        
+
         console.log(`No regex match for "${value}", treating as pure real number: ${parseFloat(value)}`);
         // Handle pure real numbers
         const real = parseFloat(value);
         return new Complex(real, 0);
     }
-    
+
     setInputState() {
         console.log('setInputState() called!');
         // Validate all inputs
         const inputs = document.querySelectorAll('.real-input, .imag-input');
         let isValid = true;
-        
+
         inputs.forEach(input => {
             if (!this.validateNumberInput(input)) {
                 isValid = false;
             }
         });
-        
+
         if (!isValid) {
             this.showError('Invalid numbers in input state');
             return;
         }
-        
+
         // Create input state from user values
         const amplitudes = [];
-        
+
         for (let i = 0; i < this.numQubits; i++) {
             const real0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="real"]`);
             const imag0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="imag"]`);
             const real1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="real"]`);
             const imag1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="imag"]`);
-            
+
             const amp0 = new Complex(parseFloat(real0Input.value) || 0, parseFloat(imag0Input.value) || 0);
             const amp1 = new Complex(parseFloat(real1Input.value) || 0, parseFloat(imag1Input.value) || 0);
-            
+
             console.log(`Qubit ${i}: |0⟩=${amp0.toString()}, |1⟩=${amp1.toString()}`);
-            
+
             // For multi-qubit states, we need to compute the tensor product
             if (i === 0) {
                 amplitudes.push(amp0, amp1);
@@ -319,16 +319,16 @@ class QuantumLab {
                 console.log(`After qubit ${i}: [${amplitudes.map(a => a.toString()).join(', ')}]`);
             }
         }
-        
+
         console.log(`Final amplitudes before normalization: [${amplitudes.map(a => a.toString()).join(', ')}]`);
-        
+
         // Check for zero state BEFORE normalization
         const norm = Math.sqrt(amplitudes.reduce((sum, amp) => sum + amp.magnitude() ** 2, 0));
         if (norm < 1e-10) {
             this.showError('Invalid input state: Zero vector has no physical meaning. All amplitudes cannot be zero.');
             return;
         }
-        
+
         // Set the input state - update both the CircuitBuilder and the actual circuit
         const newState = QuantumState.fromAmplitudes(amplitudes);
         this.circuit.state = newState;
@@ -340,14 +340,14 @@ class QuantumLab {
         this.updateProbabilityDisplay();
         this.showNotification('Input state set successfully', 'success');
     }
-    
+
     updateProbabilityDisplay() {
         const probabilityDisplay = document.getElementById('probability-display');
         if (this.circuit && this.circuit.state) {
             const amplitudes = this.circuit.state.amplitudes;
             console.log('updateProbabilityDisplay - amplitudes:', amplitudes.map(a => a.toString()));
             console.log('updateProbabilityDisplay - magnitudes:', amplitudes.map(a => a.magnitude()));
-            
+
             let probHTML = '';
             amplitudes.forEach((amp, i) => {
                 const prob = amp.magnitude() ** 2;
@@ -357,28 +357,28 @@ class QuantumLab {
                     probHTML += `<div>|${bitString}⟩: ${(prob * 100).toFixed(2)}% (amplitude: ${amp.real.toFixed(3)}${amp.imag >= 0 ? '+' : ''}${amp.imag.toFixed(3)}i)</div>`;
                 }
             });
-            
+
             // Fallback if no probabilities shown
             if (probHTML === '') {
                 probHTML = '<div>No significant probabilities found</div>';
             }
-            
+
             console.log('Final probHTML:', probHTML);
             probabilityDisplay.innerHTML = probHTML;
         }
     }
-    
+
     setPresetState(qubitIndex, state) {
         const real0Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="0"][data-part="real"]`);
         const imag0Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="0"][data-part="imag"]`);
         const real1Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="1"][data-part="real"]`);
         const imag1Input = document.querySelector(`[data-qubit="${qubitIndex}"][data-basis="1"][data-part="imag"]`);
-        
+
         if (!real0Input || !imag0Input || !real1Input || !imag1Input) {
             console.error(`Inputs for qubit ${qubitIndex} not found`);
             return;
         }
-        
+
         switch (state) {
             case '|0⟩':
                 real0Input.value = '1';
@@ -405,21 +405,21 @@ class QuantumLab {
                 imag1Input.value = '0';
                 break;
         }
-        
+
         // Trigger validation
         this.validateNumberInput(real0Input);
         this.validateNumberInput(imag0Input);
         this.validateNumberInput(real1Input);
         this.validateNumberInput(imag1Input);
     }
-    
+
     resetInputState() {
         for (let i = 0; i < this.numQubits; i++) {
             this.setPresetState(i, '|0⟩');
         }
         this.setInputState();
     }
-    
+
     setRandomInputState() {
         console.log('setRandomInputState called');
         for (let i = 0; i < this.numQubits; i++) {
@@ -428,37 +428,37 @@ class QuantumLab {
             const imag0Input = document.querySelector(`[data-qubit="${i}"][data-basis="0"][data-part="imag"]`);
             const real1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="real"]`);
             const imag1Input = document.querySelector(`[data-qubit="${i}"][data-basis="1"][data-part="imag"]`);
-            
-            console.log(`Found inputs for qubit ${i}:`, {real0Input, imag0Input, real1Input, imag1Input});
-            
+
+            console.log(`Found inputs for qubit ${i}:`, { real0Input, imag0Input, real1Input, imag1Input });
+
             if (!real0Input || !imag0Input || !real1Input || !imag1Input) {
                 console.error(`Not all inputs found for qubit ${i}`);
                 continue;
             }
-            
+
             // Generate random normalized amplitudes
             const theta = Math.random() * 2 * Math.PI;
             const phi = Math.random() * Math.PI;
-            
+
             // Calculate components for |0⟩ amplitude (real only)
-            const real0 = Math.cos(theta/2);
-            
+            const real0 = Math.cos(theta / 2);
+
             // Calculate components for |1⟩ amplitude (complex)
-            const real1 = Math.sin(theta/2) * Math.cos(phi);
-            const imag1 = Math.sin(theta/2) * Math.sin(phi);
-            
+            const real1 = Math.sin(theta / 2) * Math.cos(phi);
+            const imag1 = Math.sin(theta / 2) * Math.sin(phi);
+
             console.log(`Qubit ${i}: |0⟩=${real0}, |1⟩=${real1}+${imag1}i`);
-            
+
             // Set |0⟩ amplitude (real only)
             real0Input.value = real0.toFixed(3);
             imag0Input.value = '0';
-            
+
             // Set |1⟩ amplitude (complex)
             real1Input.value = real1.toFixed(3);
             imag1Input.value = imag1.toFixed(3);
-            
+
             console.log(`Qubit ${i}: Set values to [|0⟩=${real0Input.value}+${imag0Input.value}i, |1⟩=${real1Input.value}+${imag1Input.value}i]`);
-            
+
             // Validate inputs
             [real0Input, imag0Input, real1Input, imag1Input].forEach(input => {
                 if (input) this.validateComplexInput(input);
@@ -467,57 +467,57 @@ class QuantumLab {
         console.log('Calling setInputState()');
         this.setInputState();
     }
-    
+
     updateStateDisplay() {
         const stateDisplay = document.getElementById('state-display');
         if (this.circuit && this.circuit.state) {
             stateDisplay.textContent = this.circuit.state.toString();
         }
     }
-    
+
     handleGateDrop(event) {
         const workspace = document.getElementById('circuit-workspace');
         const rect = workspace.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        
+
         // Find which qubit line was dropped on
         const qubitHeight = 60;
         const qubitIndex = Math.floor(y / qubitHeight);
-        
+
         if (qubitIndex >= 0 && qubitIndex < this.numQubits) {
             // Find the qubit line element
             const qubitLine = workspace.querySelector(`[data-qubit="${qubitIndex}"]`);
             if (!qubitLine) return;
-            
+
             // Find the wire element (where slots are)
             const wire = qubitLine.querySelector('.qubit-wire');
             if (!wire) return;
-            
+
             // Get wire position relative to workspace
             const wireRect = wire.getBoundingClientRect();
             const workspaceRect = workspace.getBoundingClientRect();
             const wireX = wireRect.left - workspaceRect.left;
-            
+
             // Calculate position relative to wire
             const relativeX = x - wireX;
             const slotWidth = 60; // Width of each slot
             const position = Math.floor(relativeX / slotWidth);
-            
+
             console.log(`Drop: x=${x}, wireX=${wireX}, relativeX=${relativeX}, position=${position}`);
-            
+
             // Check if this is a multi-qubit gate
             const multiQubitGates = ['CNOT', 'CZ', 'SWAP'];
             const classicalGates = ['NOT', 'AND', 'OR'];
-            
+
             if (classicalGates.includes(this.draggedGate.name)) {
                 // Classical gates section - restore basic structure first
                 if (this.numQubits >= 1) {
                     if (this.draggedGate.name === 'NOT') {
                         // NOT gate: 1 input → 1 output
                         console.log(`Adding classical NOT gate at position ${position}: input ${qubitIndex} → output ${qubitIndex}`);
-                        this.addGateToCircuit(this.draggedGate.name, [qubitIndex], { 
-                            position, 
+                        this.addGateToCircuit(this.draggedGate.name, [qubitIndex], {
+                            position,
                             outputQubit: qubitIndex,
                             inputQubits: [qubitIndex],
                             type: 'classical'
@@ -526,7 +526,7 @@ class QuantumLab {
                         // AND/OR gates: 2 input qubits → 1 output qubit
                         let inputQubits;
                         let outputQubit;
-                        
+
                         if (qubitIndex < this.numQubits - 1) {
                             // Use current qubit and next one as inputs, output on current qubit
                             inputQubits = [qubitIndex, qubitIndex + 1];
@@ -536,20 +536,20 @@ class QuantumLab {
                             inputQubits = [qubitIndex - 1, qubitIndex];
                             outputQubit = qubitIndex;
                         }
-                        
+
                         if (this.draggedGate.name === 'AND') {
                             // AND gate: 2 inputs → 1 output
                             console.log(`Adding classical AND gate at position ${position}: inputs [${inputQubits.join(', ')}] → output ${outputQubit}`);
-                            this.addGateToCircuit(this.draggedGate.name, inputQubits, { 
-                                position, 
+                            this.addGateToCircuit(this.draggedGate.name, inputQubits, {
+                                position,
                                 outputQubit,
                                 type: 'classical'
                             });
                         } else if (this.draggedGate.name === 'OR') {
                             // OR gate: 2 inputs → 1 output
                             console.log(`Adding classical OR gate at position ${position}: inputs [${inputQubits.join(', ')}] → output ${outputQubit}`);
-                            this.addGateToCircuit(this.draggedGate.name, inputQubits, { 
-                                position, 
+                            this.addGateToCircuit(this.draggedGate.name, inputQubits, {
+                                position,
                                 outputQubit,
                                 type: 'classical'
                             });
@@ -589,7 +589,7 @@ class QuantumLab {
             } else {
                 // Single qubit gate
                 console.log(`Adding single-qubit gate ${this.draggedGate.name} to qubit ${qubitIndex} at position ${position}`);
-                
+
                 // Check if gate requires parameters (like rotation gates)
                 const gateInfo = QuantumGates.getGateInfo(this.draggedGate.name);
                 if (gateInfo && gateInfo.params > 0) {
@@ -601,23 +601,23 @@ class QuantumLab {
                 }
             }
         }
-        
+
         this.draggedGate = null;
     }
-    
+
     addGateToCircuit(gateName, targetQubits, params = {}) {
         try {
             console.log(`Adding gate: ${gateName} to qubits ${targetQubits} with params:`, params);
-            
+
             // Ensure circuit exists
             if (!this.circuit) {
                 this.createInitialCircuit();
             }
-            
+
             // Handle classical gates directly without going through quantum gate system
             if (['NOT', 'AND', 'OR'].includes(gateName)) {
                 console.log(`Adding classical gate ${gateName}: inputs [${targetQubits.join(', ')}] → output ${params.outputQubit}`);
-                
+
                 // Create a special classical gate object
                 const classicalGate = {
                     name: gateName,
@@ -627,39 +627,39 @@ class QuantumLab {
                     position: params.position,
                     matrix: this.createClassicalGateMatrix(gateName)
                 };
-                
+
                 // Add to both display and execution circuits
                 if (!this.circuit.gates) this.circuit.gates = [];
                 this.circuit.gates.push(classicalGate);
-                
+
                 if (!this.circuitBuilder.circuit.gates) {
                     this.circuitBuilder.circuit.gates = [];
                 }
                 this.circuitBuilder.circuit.gates.push(classicalGate);
-                
+
                 // Update displays
                 this.updateCircuitDisplay();
                 this.updateVisualization();
                 this.showNotification(`Added ${gateName} gate`, 'success');
                 return;
             }
-            
+
             // For quantum gates, use the existing logic
             const gateInfo = QuantumGates.getGateInfo(gateName);
             if (!gateInfo) {
                 throw new Error(`Unknown gate: ${gateName}`);
             }
-            
+
             if (targetQubits.length !== gateInfo.qubits) {
                 throw new Error(`Gate ${gateName} requires ${gateInfo.qubits} qubits, got ${targetQubits.length}`);
             }
-            
+
             console.log(`Adding gate ${gateName} to qubits [${targetQubits.join(', ')}]`);
             this.circuitBuilder.addGate(gateName, targetQubits, params);
             this.circuit = this.circuitBuilder.circuit; // Get the updated circuit
             console.log(`Added gate ${gateName} to qubits [${targetQubits.join(', ')}]`);
             console.log('Circuit now has', (this.circuit.gates || []).length, 'gates');
-            
+
             // Update displays
             this.updateCircuitDisplay();
             this.updateVisualization();
@@ -670,7 +670,7 @@ class QuantumLab {
             this.showError(error.message);
         }
     }
-    
+
     showParameterDialog(gateName, targetQubits, position = 0) {
         console.log(`Showing parameter dialog for ${gateName} at position ${position}`);
         const dialog = document.createElement('div');
@@ -686,48 +686,48 @@ class QuantumLab {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(dialog);
         console.log('Dialog added to body');
         console.log('Dialog element:', dialog);
         console.log('Dialog offset:', dialog.getBoundingClientRect());
-        
+
         // Create parameter form
         const form = GateParameterDialog.createParameterForm(gateName);
         console.log('Parameter form created:', form);
         if (form) {
             dialog.querySelector('.parameter-form').appendChild(form);
         }
-        
+
         // Handle dialog actions
         dialog.querySelector('.btn-primary').addEventListener('click', () => {
             console.log('Apply button clicked');
             const params = form ? GateParameterDialog.getParameterValues(gateName, form) : {};
             console.log('Parameters collected:', params);
-            
+
             // Add the position parameter to the params
             params.position = position;
-            
+
             console.log('Final params with position:', params);
             console.log('Adding gate to circuit:', gateName, targetQubits, params);
-            
+
             // Use circuit builder instead of direct circuit.addGate
             this.circuitBuilder.addGate(gateName, targetQubits, params);
             this.circuit = this.circuitBuilder.circuit; // Get the updated circuit
             console.log('Gate added to circuit via builder');
             console.log('Circuit now has', (this.circuit.gates || []).length, 'gates');
-            
+
             this.updateCircuitDisplay();
             this.updateVisualization();
             document.body.removeChild(dialog);
         });
-        
+
         dialog.querySelector('.btn-secondary').addEventListener('click', () => {
             console.log('Cancel button clicked');
             document.body.removeChild(dialog);
         });
     }
-    
+
     updateCircuitDisplay() {
         console.log('Updating circuit display');
         const workspace = document.getElementById('circuit-workspace');
@@ -737,7 +737,7 @@ class QuantumLab {
         }
         workspace.innerHTML = '';
         console.log('Workspace cleared, numQubits:', this.numQubits);
-        
+
         // Create qubit lines
         for (let i = 0; i < this.numQubits; i++) {
             console.log(`Creating qubit line ${i}`);
@@ -752,14 +752,14 @@ class QuantumLab {
             qubitLine.style.border = '1px solid #e5e7eb';
             qubitLine.style.padding = '0.5rem';
             qubitLine.style.borderRadius = '4px';
-            
-                        
+
+
             const label = document.createElement('div');
             label.className = 'qubit-label';
             label.innerHTML = `q${i}`;
             label.style.color = '#6b7280';
             label.style.fontWeight = 'bold';
-            
+
             const wire = document.createElement('div');
             wire.className = 'qubit-wire';
             wire.style.flex = '1';
@@ -769,7 +769,7 @@ class QuantumLab {
             wire.style.display = 'flex';
             wire.style.alignItems = 'center';
             wire.style.padding = '0 1rem';
-            
+
             // Add gate slots - calculate based on actual gate positions
             const allPositions = new Set();
             (this.circuit.gates || []).forEach(gate => {
@@ -781,11 +781,11 @@ class QuantumLab {
                     console.log(`Gate ${gate.name} on qubit ${i} at position ${position}`);
                 }
             });
-            
+
             // Ensure minimum 5 slots
             const maxPosition = Math.max(...Array.from(allPositions), 4);
             console.log(`Qubit ${i}: positions=${Array.from(allPositions)}, maxPosition=${maxPosition}`);
-            
+
             for (let j = 0; j <= maxPosition; j++) {
                 const slot = document.createElement('div');
                 slot.className = 'gate-slot';
@@ -802,7 +802,7 @@ class QuantumLab {
                 slot.style.margin = '0 0.5rem';
                 slot.style.cursor = 'pointer';
                 slot.style.transition = 'all 0.3s ease';
-                
+
                 // Check if there's a gate at this position
                 const gate = this.getGateAtPosition(i, j);
                 if (gate) {
@@ -823,24 +823,24 @@ class QuantumLab {
                     slot.style.fontWeight = 'bold';
                     slot.style.fontSize = '12px';
                 }
-                
+
                 wire.appendChild(slot);
             }
-            
+
             qubitLine.appendChild(label);
             qubitLine.appendChild(wire);
             workspace.appendChild(qubitLine);
             console.log(`Added qubit line ${i} to workspace`);
         }
-        
+
         console.log('Finished creating all qubit lines');
-        
+
         // Add click handlers to gate slots
         workspace.querySelectorAll('.gate-slot').forEach(slot => {
             slot.addEventListener('click', () => this.handleSlotClick(slot));
         });
     }
-    
+
     getGateAtPosition(qubit, position) {
         // Find gate at specific position for this qubit
         const gate = (this.circuit.gates || []).find(gate => {
@@ -852,7 +852,7 @@ class QuantumLab {
         console.log(`getGateAtPosition: qubit=${qubit}, position=${position}, found=${gate ? gate.name : 'null'}`);
         return gate || null;
     }
-    
+
     handleSlotClick(slot) {
         if (slot.classList.contains('occupied')) {
             // Remove gate
@@ -863,15 +863,15 @@ class QuantumLab {
             console.log('Empty slot clicked:', slot.dataset.qubit, slot.dataset.position);
         }
     }
-    
+
     removeGateFromSlot(slot) {
         const qubit = parseInt(slot.dataset.qubit);
         const position = parseInt(slot.dataset.position);
-        
+
         // Find and remove the gate
         const qubitGates = this.circuit.gates.filter(g => g.targetQubits.includes(qubit));
         const gateToRemove = qubitGates[position];
-        
+
         if (gateToRemove) {
             const index = this.circuit.gates.indexOf(gateToRemove);
             this.circuit.gates.splice(index, 1);
@@ -879,20 +879,20 @@ class QuantumLab {
             this.updateVisualization();
         }
     }
-    
+
     addQubit() {
         if (this.numQubits >= 8) {
             this.showError('Maximum 8 qubits supported');
             return;
         }
-        
+
         this.numQubits++;
         this.circuit = this.circuitBuilder.createCircuit(this.numQubits);
         this.updateCircuitDisplay();
         this.updateVisualization();
         this.setupInputStateControls(); // Regenerate input state controls for new qubit
     }
-    
+
     clearCircuit() {
         console.log('Clear circuit called');
         try {
@@ -906,14 +906,14 @@ class QuantumLab {
             this.showError('Failed to clear circuit: ' + error.message);
         }
     }
-    
+
     runCircuit() {
         console.log('Run circuit called');
         try {
             if (!this.circuit) {
                 throw new Error('No circuit exists');
             }
-            
+
             // Check if circuit state exists using try block
             try {
                 if (!this.circuit.state) {
@@ -924,7 +924,7 @@ class QuantumLab {
                 this.showError('Circuit state not initialized. Please set an input state first.');
                 return;
             }
-            
+
             // Check for zero state - if all amplitudes are zero, it's meaningless
             try {
                 const norm = Math.sqrt(this.circuit.state.amplitudes.reduce((sum, amp) => sum + amp.magnitude() ** 2, 0));
@@ -936,17 +936,17 @@ class QuantumLab {
                 this.showError('Invalid input state: Cannot compute norm. Please set a valid input state.');
                 return;
             }
-            
+
             console.log('Running circuit:', this.circuit);
             console.log('Input state before execution:', this.circuit.state.toString());
             console.log('Input state amplitudes:', this.circuit.state.amplitudes.map(a => a.toString()));
-            
+
             const result = this.circuit.run();
             console.log('Circuit result:', result);
             console.log('Output state after execution:', result.finalState.toString());
             console.log('Output state amplitudes:', result.finalState.amplitudes.map(a => a.toString()));
             this.displayResults(result);
-            
+
             // Animate state evolution
             this.animateStateEvolution(result);
         } catch (error) {
@@ -954,36 +954,42 @@ class QuantumLab {
             this.showError('Error running circuit: ' + error.message);
         }
     }
-    
+
     displayZeroStateError() {
         // Show placeholder instead of results
         const stateDisplay = document.getElementById('state-display');
         stateDisplay.textContent = '|ψ⟩ = Invalid State (Zero Vector)';
-        
+
         const probabilityDisplay = document.getElementById('probability-display');
         probabilityDisplay.innerHTML = '<div style="color: #ef4444;">Error: Input state is undefined (all amplitudes are zero)</div>';
-        
+
         // Clear visualizations
         this.visualizer.clearCanvas('state-vector-canvas');
         this.visualizer.clearCanvas('bloch-sphere-canvas');
         this.visualizer.clearCanvas('probabilities-canvas');
     }
-    
+
     displayResults(result) {
         console.log('=== DISPLAY RESULTS START ===');
         console.log('Displaying results:', result);
         console.log('Final state type:', typeof result.finalState);
         console.log('Final state has toString:', typeof result.finalState.toString);
         console.log('Final state:', result.finalState ? result.finalState.toString() : 'NULL STATE');
-        
+
+        // Show the results section
+        const resultsSection = document.getElementById('algorithm-results');
+        if (resultsSection) {
+            resultsSection.style.display = 'block';
+        }
+
         // Update state display with final state
-        const stateDisplay = document.getElementById('state-display');
+        const stateDisplay = document.getElementById('results-state-display');
         if (result.finalState && stateDisplay) {
             try {
                 stateDisplay.textContent = result.finalState.toString();
-                console.log('Updated state display to:', result.finalState.toString());
+                console.log('Updated results state display to:', result.finalState.toString());
             } catch (error) {
-                console.error('Error updating state display:', error);
+                console.error('Error updating results state display:', error);
                 stateDisplay.textContent = 'State: ' + (result.finalState ? result.finalState.toString() : 'ERROR');
             }
         } else {
@@ -992,14 +998,14 @@ class QuantumLab {
                 stateDisplay.textContent = 'No final state available';
             }
         }
-        
+
         // Update probability display with final state probabilities
-        const probabilityDisplay = document.getElementById('probability-display');
+        const probabilityDisplay = document.getElementById('results-probability-display');
         if (result.finalState) {
             const amplitudes = result.finalState.amplitudes;
             console.log('Probability calculation - amplitudes:', amplitudes.map(a => a.toString()));
             console.log('Probability calculation - magnitudes:', amplitudes.map(a => a.magnitude()));
-            
+
             let probHTML = '';
             amplitudes.forEach((amp, i) => {
                 const prob = amp.magnitude() ** 2;
@@ -1009,73 +1015,100 @@ class QuantumLab {
                     probHTML += `<div>|${bitString}⟩: ${(prob * 100).toFixed(2)}% (amplitude: ${amp.real.toFixed(3)}${amp.imag >= 0 ? '+' : ''}${amp.imag.toFixed(3)}i)</div>`;
                 }
             });
-            
+
             // Fallback if no probabilities shown
             if (probHTML === '') {
                 probHTML = '<div>No significant probabilities found</div>';
             }
-            
+
             console.log('Final probHTML:', probHTML);
-            console.log('Probability display element:', probabilityDisplay);
+            console.log('Results probability display element:', probabilityDisplay);
             probabilityDisplay.innerHTML = probHTML;
-            console.log('After setting innerHTML');
+            console.log('After setting results innerHTML');
         }
-        
-        // Update visualizations with final state
+
+        // Show measurements if any
+        const measurementsDisplay = document.getElementById('results-measurements');
+        if (measurementsDisplay) {
+            if (result.measurements && result.measurements.length > 0) {
+                const measurementResults = result.measurements.map(m =>
+                    `q${m.qubit} = ${m.result}`
+                ).join(', ');
+                measurementsDisplay.innerHTML = `<div>${measurementResults}</div>`;
+            } else {
+                measurementsDisplay.innerHTML = '<div>No measurements performed</div>';
+            }
+        }
+
+        // Show algorithm information if available
+        const infoDisplay = document.getElementById('results-info');
+        if (infoDisplay && this.circuit.metadata) {
+            const metadata = this.circuit.metadata;
+            let infoHTML = '';
+            if (metadata.algorithm) {
+                infoHTML += `<div><strong>Algorithm:</strong> ${metadata.algorithm}</div>`;
+            }
+            if (metadata.description) {
+                infoHTML += `<div><strong>Description:</strong> ${metadata.description}</div>`;
+            }
+            if (metadata.searchSpaceSize) {
+                infoHTML += `<div><strong>Search Space:</strong> ${metadata.searchSpaceSize} items</div>`;
+            }
+            if (metadata.targetElement !== undefined) {
+                infoHTML += `<div><strong>Target:</strong> ${metadata.targetElement}</div>`;
+            }
+            if (metadata.iterations) {
+                infoHTML += `<div><strong>Iterations:</strong> ${metadata.iterations}</div>`;
+            }
+            infoDisplay.innerHTML = infoHTML || '<div>No algorithm information available</div>';
+        }
+
+        // Update visualizations with final state (keep these in the visualization tabs)
         if (result.finalState) {
             const stateVector = result.finalState.amplitudes;
             this.visualizer.drawStateVector(stateVector);
             this.visualizer.drawBlochSphere(stateVector);
             this.visualizer.drawProbabilityDistribution(stateVector);
         }
-        
-        // Show measurements if any
-        if (result.measurements && result.measurements.length > 0) {
-            const measurementResults = result.measurements.map(m => 
-                `q${m.qubit} = ${m.result}`
-            ).join(', ');
-            
-            this.showNotification(`Measurements: ${measurementResults}`, 'success');
-        }
-        
-        this.showNotification('Circuit executed successfully!', 'success');
+
+        this.showNotification('Algorithm executed successfully! Results shown below.', 'success');
     }
-    
+
     animateStateEvolution(result) {
         if (result.gateOperations && result.gateOperations.length > 0) {
             const initialState = result.initialState;
             const finalState = result.finalState;
-            
+
             const animation = new QuantumStateAnimation(
                 this.visualizer,
                 initialState,
                 finalState,
                 2000 // 2 second animation
             );
-            
+
             this.animationController.addAnimation(animation);
         }
     }
-    
+
     updateVisualization() {
         if (!this.circuit) {
             return;
         }
-        
+
         // Don't update visualization after adding gates - only after running circuit
         // This prevents errors when the circuit state isn't fully computed yet
         if (this.circuit.state && this.circuit.state.getStateVector) {
             const stateVector = this.circuit.state.getStateVector();
-            
+
             // Update all visualizations
             this.visualizer.drawStateVector(stateVector);
             this.visualizer.drawBlochSphere(stateVector);
             this.visualizer.drawProbabilityDistribution(stateVector);
         }
-        
+
         this.visualizer.drawCircuit(this.circuit);
     }
-    
+
     setupAlgorithmExamples() {
         document.querySelectorAll('.algorithm-card').forEach(card => {
             const button = card.querySelector('button');
@@ -1085,17 +1118,17 @@ class QuantumLab {
             });
         });
     }
-    
+
     loadAlgorithm(algorithmName) {
         try {
             let circuit;
-            
+
             switch (algorithmName) {
                 case 'deutsch-jozsa':
                     circuit = QuantumAlgorithms.DeutschJozsa();
                     break;
                 case 'grover':
-                    circuit = QuantumAlgorithms.GroverSearch();
+                    circuit = QuantumAlgorithms.GroverSearch({ numQubits: 3, markedIndex: 2 });
                     break;
                 case 'quantum-fourier':
                     circuit = QuantumAlgorithms.QuantumFourierTransform(3);
@@ -1106,28 +1139,31 @@ class QuantumLab {
                 default:
                     throw new Error(`Unknown algorithm: ${algorithmName}`);
             }
-            
+
             this.circuit = circuit;
             this.numQubits = circuit.numQubits;
             this.circuitBuilder.createCircuit(this.numQubits);
             this.circuitBuilder.circuit = circuit;
-            
+
             this.updateCircuitDisplay();
             this.updateVisualization();
             
+            // Regenerate input state controls for the new number of qubits
+            this.setupInputStateControls();
+
             this.showNotification(`Loaded ${algorithmName.replace('-', ' ')} algorithm`, 'success');
         } catch (error) {
             this.showError(error.message);
         }
     }
-    
+
     runBenchmarks() {
         try {
             const results = QuantumBenchmark.runBenchmarks();
-            
+
             // Display benchmark results
             this.visualizer.drawPerformanceChart(results);
-            
+
             // Show summary
             const summary = this.createBenchmarkSummary(results);
             this.showNotification(summary, 'info');
@@ -1135,27 +1171,27 @@ class QuantumLab {
             this.showError(error.message);
         }
     }
-    
+
     createBenchmarkSummary(results) {
         let summary = 'Benchmark Results:\n';
-        
+
         if (results.gateOperations) {
             summary += '\nGate Operation Times:\n';
             Object.entries(results.gateOperations).forEach(([gate, time]) => {
                 summary += `  ${gate}: ${time.toFixed(3)}ms\n`;
             });
         }
-        
+
         if (results.stateVectorSize) {
             summary += '\nState Vector Performance:\n';
             Object.entries(results.stateVectorSize).forEach(([qubits, data]) => {
                 summary += `  ${qubits} qubits: ${data.time.toFixed(3)}ms (${data.dimension} states)\n`;
             });
         }
-        
+
         return summary;
     }
-    
+
     setupTabSwitching() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1164,25 +1200,25 @@ class QuantumLab {
             });
         });
     }
-    
+
     switchTab(tabName) {
         // Update button states
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
         });
-        
+
         // Update panel visibility
         document.querySelectorAll('.tab-pane').forEach(pane => {
             pane.classList.toggle('active', pane.id === tabName);
         });
-        
+
         // Refresh visualization for the active tab
         this.refreshActiveVisualization(tabName);
     }
-    
+
     refreshActiveVisualization(tabName) {
         const stateVector = this.circuit.state.amplitudes;
-        
+
         switch (tabName) {
             case 'state-vector':
                 this.visualizer.drawStateVector(stateVector);
@@ -1195,12 +1231,12 @@ class QuantumLab {
                 break;
         }
     }
-    
+
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.textContent = message;
-        
+
         // Style the notification
         Object.assign(notification.style, {
             position: 'fixed',
@@ -1214,7 +1250,7 @@ class QuantumLab {
             maxWidth: '300px',
             wordWrap: 'break-word'
         });
-        
+
         // Set background color based on type
         const colors = {
             success: '#10b981',
@@ -1223,9 +1259,9 @@ class QuantumLab {
             info: '#6366f1'
         };
         notification.style.backgroundColor = colors[type] || colors.info;
-        
+
         document.body.appendChild(notification);
-        
+
         // Auto remove after 3 seconds
         setTimeout(() => {
             if (notification.parentNode) {
@@ -1233,18 +1269,18 @@ class QuantumLab {
             }
         }, 3000);
     }
-    
+
     showError(message) {
         this.showNotification(message, 'error');
         console.error('QuantumLab Error:', message);
     }
-    
+
     createClassicalGateMatrix(gateName) {
         // Create a simplified matrix representation for classical gates
         // For now, implement AND gate as quantum matrix to get it working
         const size = 4; // 2 qubits = 4x4 matrix
         const matrix = Array(size).fill().map(() => Array(size).fill().map(() => new Complex(0, 0)));
-        
+
         if (gateName === 'AND') {
             // AND truth table matrix: [[1,0,0,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]]
             // |00⟩ → |00⟩, |01⟩ → |01⟩, |10⟩ → |00⟩, |11⟩ → |11⟩
@@ -1263,10 +1299,10 @@ class QuantumLab {
             matrix[0][1] = new Complex(1, 0); // |0⟩ → |1⟩
             matrix[1][0] = new Complex(1, 0); // |1⟩ → |1⟩
         }
-        
+
         return Matrix.fromArray(matrix);
     }
-    
+
     // Utility methods
     exportCircuit() {
         const circuitData = {
@@ -1278,42 +1314,42 @@ class QuantumLab {
             })),
             measurements: this.circuit.measurements
         };
-        
+
         const dataStr = JSON.stringify(circuitData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
+
         const link = document.createElement('a');
         link.href = URL.createObjectURL(dataBlob);
         link.download = 'quantum-circuit.json';
         link.click();
     }
-    
+
     importCircuit(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const circuitData = JSON.parse(e.target.result);
-                
+
                 this.numQubits = circuitData.numQubits;
                 this.circuit = this.circuitBuilder.createCircuit(this.numQubits);
-                
+
                 circuitData.gates.forEach(gate => {
                     this.circuit.addGate(gate.name, gate.targetQubits, gate.params || {});
                 });
-                
+
                 circuitData.measurements.forEach(meas => {
                     this.circuit.addMeasurement(meas.qubit);
                 });
-                
+
                 this.updateCircuitDisplay();
                 this.updateVisualization();
-                
+
                 this.showNotification('Circuit imported successfully', 'success');
             } catch (error) {
                 this.showError('Failed to import circuit: ' + error.message);
             }
         };
-        
+
         reader.readAsText(file);
     }
 }
@@ -1323,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('QuantumLab: DOM loaded, initializing...');
     window.quantumLab = new QuantumLab();
     console.log('QuantumLab: Initialization complete');
-// Add keyboard shortcuts
+    // Add keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
             switch (e.key) {
@@ -1347,14 +1383,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
+
     // Add window resize handler
     window.addEventListener('resize', () => {
         if (window.quantumLab) {
             window.quantumLab.updateVisualization();
         }
     });
-    
+
     console.log('QuantumLab initialized successfully!');
 });
 

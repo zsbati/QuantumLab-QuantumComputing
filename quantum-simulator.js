@@ -554,20 +554,69 @@ class QuantumAlgorithms {
         return circuit;
     }
 
-    static GroverSearch(numQubits = 3, markedIndex = 5) {
+    static GroverSearch(config = {}) {
+        const {
+            numQubits = 3,
+            dataset = null,
+            targetElement = null,
+            markedIndex = null,
+            iterations = null
+        } = config;
+
+        // Validate and set up search space
+        const searchSpaceSize = Math.pow(2, numQubits);
+        let actualMarkedIndex;
+
+        if (dataset && targetElement !== null) {
+            // User provided dataset and target
+            if (dataset.length > searchSpaceSize) {
+                throw new Error(`Dataset size (${dataset.length}) exceeds search space (${searchSpaceSize})`);
+            }
+            actualMarkedIndex = dataset.indexOf(targetElement);
+            if (actualMarkedIndex === -1) {
+                throw new Error(`Target element not found in dataset`);
+            }
+        } else if (markedIndex !== null) {
+            // Use provided marked index
+            if (markedIndex >= searchSpaceSize) {
+                throw new Error(`Marked index ${markedIndex} out of range for ${numQubits} qubits`);
+            }
+            actualMarkedIndex = markedIndex;
+        } else {
+            // Default behavior - use middle element
+            actualMarkedIndex = Math.floor(searchSpaceSize / 2);
+        }
+
         const circuit = new QuantumCircuit(numQubits);
+
+        // Store metadata for explanation
+        circuit.metadata = {
+            algorithm: 'Grover\'s Search',
+            searchSpaceSize,
+            markedIndex: actualMarkedIndex,
+            targetElement: dataset ? dataset[actualMarkedIndex] : actualMarkedIndex,
+            dataset: dataset || Array.from({length: searchSpaceSize}, (_, i) => i),
+            iterations: iterations || Math.floor(Math.PI / 4 * Math.sqrt(searchSpaceSize)),
+            description: `Quantum search algorithm that finds ${dataset ? dataset[actualMarkedIndex] : 'element ' + actualMarkedIndex} in ${searchSpaceSize} possibilities using quantum superposition and amplitude amplification`
+        };
 
         // Initialize superposition
         for (let i = 0; i < numQubits; i++) {
             circuit.addGate('H', [i]);
         }
 
-        // Oracle for marked state
-        const oracle = this.createOracle(numQubits, markedIndex);
-        circuit.gates.push(...oracle);
+        // Calculate optimal iterations
+        const optimalIterations = iterations || Math.floor(Math.PI / 4 * Math.sqrt(searchSpaceSize));
 
-        // Grover iteration (simplified - normally would repeat sqrt(N) times)
-        this.addGroverIteration(circuit, numQubits);
+        // Apply Grover iterations
+        for (let iter = 0; iter < optimalIterations; iter++) {
+            // Oracle for marked state
+            const oracle = this.createOracle(numQubits, actualMarkedIndex);
+            circuit.gates.push(...oracle);
+
+            // Diffusion operator
+            this.addGroverIteration(circuit, numQubits);
+        }
 
         return circuit;
     }
