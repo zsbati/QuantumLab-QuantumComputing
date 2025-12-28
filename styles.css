@@ -424,6 +424,72 @@ canvas {
     margin-bottom: 1rem;
 }
 
+.algorithm-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.algorithm-buttons .btn {
+    flex: 1;
+}
+
+/* Algorithm Results Section */
+.algorithm-results {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    position: static !important;
+    display: none;
+    width: 100%;
+    max-width: 100%;
+}
+
+.algorithm-results h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+}
+
+.results-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.result-section {
+    background: var(--light-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.result-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.state-display {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.probability-display div {
+    padding: 0.25rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.measurements-display,
+.info-display {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
 /* Benchmarking */
 .benchmarking {
     background: white;

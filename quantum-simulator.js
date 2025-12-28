@@ -117,6 +117,10 @@ class QuantumCircuit {
             if (gate.type === 'classical') {
                 this.applyClassicalGate(gate);
             } else {
+                // Ensure gate has a matrix
+                if (!gate.matrix) {
+                    gate.matrix = QuantumGates.getGate(gate.name, ...(gate.params ? Object.values(gate.params) : []));
+                }
                 this.state.applyGate(gate.matrix, gate.targetQubits);
             }
 

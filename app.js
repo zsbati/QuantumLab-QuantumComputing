@@ -12,6 +12,7 @@ class QuantumLab {
         this.circuitBuilder = new CircuitBuilder();
         this.draggedGate = null;
         this.gateSlots = [];
+        this.groverConfig = null; // Store Grover configuration
 
         this.initializeEventListeners();
         this.initializeVisualization();
@@ -994,12 +995,17 @@ class QuantumLab {
 
         // Show the results section
         const resultsSection = document.getElementById('algorithm-results');
+        console.log('Results section element:', resultsSection);
         if (resultsSection) {
             resultsSection.style.display = 'block';
+            console.log('Results section shown');
+        } else {
+            console.error('Results section element not found!');
         }
 
         // Update state display with final state
         const stateDisplay = document.getElementById('results-state-display');
+        console.log('State display element:', stateDisplay);
         if (result.finalState && stateDisplay) {
             try {
                 stateDisplay.textContent = result.finalState.toString();
@@ -1009,7 +1015,7 @@ class QuantumLab {
                 stateDisplay.textContent = 'State: ' + (result.finalState ? result.finalState.toString() : 'ERROR');
             }
         } else {
-            console.log('No final state to display');
+            console.log('No final state to display or state display element not found');
             if (stateDisplay) {
                 stateDisplay.textContent = 'No final state available';
             }
@@ -1113,8 +1119,8 @@ class QuantumLab {
 
         // Don't update visualization after adding gates - only after running circuit
         // This prevents errors when the circuit state isn't fully computed yet
-        if (this.circuit.state && this.circuit.state.getStateVector) {
-            const stateVector = this.circuit.state.getStateVector();
+        if (this.circuit.state && this.circuit.state.amplitudes) {
+            const stateVector = this.circuit.state.amplitudes;
 
             // Update all visualizations
             this.visualizer.drawStateVector(stateVector);
@@ -1144,7 +1150,15 @@ class QuantumLab {
                     circuit = QuantumAlgorithms.DeutschJozsa();
                     break;
                 case 'grover':
-                    circuit = QuantumAlgorithms.GroverSearch({ numQubits: 3, markedIndex: 2 });
+                    if (this.groverConfig) {
+                        // Use the stored configuration
+                        circuit = QuantumAlgorithms.GroverSearch(this.groverConfig);
+                        console.log('Using stored Grover configuration:', this.groverConfig);
+                    } else {
+                        // Use default configuration
+                        circuit = QuantumAlgorithms.GroverSearch({ numQubits: 3, markedIndex: 2 });
+                        console.log('Using default Grover configuration');
+                    }
                     break;
                 case 'quantum-fourier':
                     circuit = QuantumAlgorithms.QuantumFourierTransform(3);
@@ -1158,6 +1172,12 @@ class QuantumLab {
 
             this.circuit = circuit;
             this.numQubits = circuit.numQubits;
+            
+            // Ensure the circuit has a state initialized
+            if (!this.circuit.state) {
+                this.circuit.state = new QuantumState(this.numQubits);
+            }
+            
             this.circuitBuilder.createCircuit(this.numQubits);
             this.circuitBuilder.circuit = circuit;
 
@@ -1170,6 +1190,230 @@ class QuantumLab {
             this.showNotification(`Loaded ${algorithmName.replace('-', ' ')} algorithm`, 'success');
         } catch (error) {
             this.showError(error.message);
+        }
+    }
+
+    configureGrover() {
+        const dialog = document.createElement('div');
+        dialog.className = 'grover-config-dialog';
+        dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 500px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        `;
+
+        dialog.innerHTML = `
+            <h3 style="margin-top: 0; color: #6366f1; margin-bottom: 1.5rem;">Grover's Search Configuration</h3>
+            
+            <div class="config-section" style="margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 0.5rem; color: #34495e;">1. Choose Dataset Type</h4>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="dataset-type" id="wavefunction" value="wavefunction" checked>
+                    <label class="form-check-label" for="wavefunction">
+                        Wave Function States (|000⟩, |001⟩, etc.)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="dataset-type" id="numbers" value="numbers">
+                    <label class="form-check-label" for="numbers">
+                        Numbers (0-7)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="dataset-type" id="names" value="names">
+                    <label class="form-check-label" for="names">
+                        Names (Alice, Bob, etc.)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="dataset-type" id="colors" value="colors">
+                    <label class="form-check-label" for="colors">
+                        Colors (Red, Blue, etc.)
+                    </label>
+                </div>
+            </div>
+
+            <div class="config-section" style="margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 0.5rem; color: #34495e;">2. Select Target</h4>
+                <select id="target-select" class="form-select" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+                    <option value="">-- Select a target --</option>
+                </select>
+            </div>
+
+            <div class="button-group" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+                <button class="btn btn-primary" id="apply-btn">Apply</button>
+            </div>
+        `;
+
+        // Add overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.bottom = '0';
+        overlay.style.background = 'rgba(0,0,0,0.5)';
+        overlay.style.zIndex = '999';
+
+        // Add to DOM
+        document.body.appendChild(overlay);
+        document.body.appendChild(dialog);
+
+        // Dataset configurations
+        const datasetConfigs = {
+            wavefunction: {
+                values: Array.from({ length: 8 }, (_, i) => {
+                    const bits = i.toString(2).padStart(3, '0');
+                    return `|${bits}⟩`;
+                })
+            },
+            numbers: {
+                values: Array.from({ length: 8 }, (_, i) => i.toString())
+            },
+            names: {
+                values: ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Heidi']
+            },
+            colors: {
+                values: ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet', 'Black']
+            }
+        };
+
+        // Update target options when dataset type changes
+        const updateTargetOptions = (type) => {
+            const select = dialog.querySelector('#target-select');
+            const config = datasetConfigs[type];
+            select.innerHTML = '<option value="">-- Select a target --</option>';
+
+            config.values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+        };
+
+        // Initial update
+        updateTargetOptions('wavefunction');
+
+        // Add event listeners
+        dialog.querySelectorAll('input[name="dataset-type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                updateTargetOptions(e.target.value);
+            });
+        });
+
+        dialog.querySelector('#apply-btn').addEventListener('click', () => {
+            const selectedType = dialog.querySelector('input[name="dataset-type"]:checked').value;
+            const targetSelect = dialog.querySelector('#target-select');
+            const selectedTarget = targetSelect.value;
+
+            if (!selectedTarget || selectedTarget === '') {
+                alert('Please select a target element');
+                return;
+            }
+
+            this.applyGroverConfiguration(selectedType, selectedTarget);
+            document.body.removeChild(overlay);
+            document.body.removeChild(dialog);
+        });
+
+        dialog.querySelector('#cancel-btn').addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            document.body.removeChild(dialog);
+        });
+
+        // Close on overlay click
+        overlay.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            document.body.removeChild(dialog);
+        });
+    }
+
+    applyGroverConfiguration(selectedType, selectedTarget) {
+        let dataset;
+        let actualTarget;
+        let numQubits = 3; // Default to 3 qubits for Grover's algorithm
+
+        // Map the selected target to the appropriate dataset and format
+        switch (selectedType) {
+            case 'wavefunction':
+                dataset = Array.from({ length: 8 }, (_, i) => {
+                    const bits = i.toString(2).padStart(3, '0');
+                    return `|${bits}⟩`;
+                });
+                actualTarget = selectedTarget; // e.g., |101⟩
+                break;
+
+            case 'numbers':
+                dataset = Array.from({ length: 8 }, (_, i) => i.toString());
+                actualTarget = selectedTarget; // e.g., "5"
+                break;
+
+            case 'names':
+                dataset = ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Heidi'];
+                actualTarget = selectedTarget; // e.g., "Eve"
+                break;
+
+            case 'colors':
+                dataset = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet', 'Black'];
+                actualTarget = selectedTarget; // e.g., "Blue"
+                break;
+
+            default:
+                this.showError('Invalid dataset type selected');
+                return;
+        }
+
+        // Store the configuration
+        this.groverConfig = {
+            numQubits: numQubits,
+            dataset: dataset,
+            targetElement: actualTarget
+        };
+
+        try {
+            // Create Grover's algorithm with the selected configuration
+            const circuit = QuantumAlgorithms.GroverSearch(this.groverConfig);
+
+            // Update the circuit and UI
+            this.circuit = circuit;
+            this.numQubits = circuit.numQubits;
+            
+            // Ensure the circuit has a state initialized
+            if (!this.circuit.state) {
+                this.circuit.state = new QuantumState(this.numQubits);
+            }
+            
+            this.circuitBuilder.createCircuit(this.numQubits);
+            this.circuitBuilder.circuit = circuit;
+
+            // Run the circuit to show results
+            const result = this.circuit.run();
+            this.displayResults(result);
+
+            this.updateCircuitDisplay();
+            this.updateVisualization();
+            this.setupInputStateControls();
+
+            // Show success message with the target element
+            const targetDisplay = selectedType === 'wavefunction' ?
+                `state ${actualTarget}` : `"${actualTarget}"`;
+            this.showNotification(`Grover's algorithm configured to find ${targetDisplay}`, 'success');
+
+        } catch (error) {
+            this.showError(`Error configuring Grover's algorithm: ${error.message}`);
+            console.error('Grover configuration error:', error);
         }
     }
 
