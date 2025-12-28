@@ -896,11 +896,27 @@ class QuantumLab {
     clearCircuit() {
         console.log('Clear circuit called');
         try {
+            // Clear both the circuitBuilder's circuit and the main circuit
             this.circuitBuilder.reset();
+            
+            // Clear the main circuit's gates directly
+            if (this.circuit) {
+                this.circuit.gates = [];
+                this.circuit.measurements = [];
+            }
+            
+            // Create a fresh circuit
             this.circuit = this.circuitBuilder.createCircuit(this.numQubits);
+            
+            // Ensure the new circuit has a state initialized
+            if (!this.circuit.state) {
+                this.circuit.state = new QuantumState(this.numQubits);
+            }
+            
             console.log('Circuit cleared:', this.circuit);
             this.updateCircuitDisplay();
             this.updateVisualization();
+            this.updateStateDisplay();
         } catch (error) {
             console.error('Error clearing circuit:', error);
             this.showError('Failed to clear circuit: ' + error.message);
@@ -1297,7 +1313,7 @@ class QuantumLab {
         } else if (gateName === 'NOT') {
             // NOT truth table: 0→1, 1→0
             matrix[0][1] = new Complex(1, 0); // |0⟩ → |1⟩
-            matrix[1][0] = new Complex(1, 0); // |1⟩ → |1⟩
+            matrix[1][0] = new Complex(1, 0); // |1⟩ → |0⟩
         }
 
         return Matrix.fromArray(matrix);

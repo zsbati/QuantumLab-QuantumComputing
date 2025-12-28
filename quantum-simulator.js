@@ -47,10 +47,12 @@ class QuantumCircuit {
             // Count gates that would appear before this position on any target qubit
             for (let i = 0; i < this.gates.length; i++) {
                 const existingGate = this.gates[i];
-                const existingPosition = existingGate.params.position || i;
+                // Handle both quantum gates (params.position) and classical gates (position)
+                const existingPosition = existingGate.params?.position || existingGate.position || i;
                 
                 // Check if existing gate overlaps with target qubits and comes before desired position
-                if (existingGate.targetQubits.some(q => targetQubits.includes(q)) && 
+                const existingGateQubits = existingGate.targetQubits || existingGate.inputQubits || [];
+                if (existingGateQubits.some(q => targetQubits.includes(q)) && 
                     existingPosition < position) {
                     insertIndex = i + 1;
                 } else if (existingPosition >= position) {
@@ -533,7 +535,11 @@ class CircuitBuilder {
     }
 
     reset() {
-        this.circuit = null;
+        if (this.circuit) {
+            // Clear gates but preserve the circuit structure
+            this.circuit.gates = [];
+            this.circuit.measurements = [];
+        }
         return this;
     }
 }
