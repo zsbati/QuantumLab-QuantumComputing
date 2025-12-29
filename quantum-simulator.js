@@ -550,16 +550,109 @@ class CircuitBuilder {
 
 // Pre-built Quantum Algorithms
 class QuantumAlgorithms {
-    static DeutschJozsa() {
-        const circuit = new QuantumCircuit(2);
+    static DeutschJozsa(config = {}) {
+        const { 
+            numQubits = 2, 
+            functionType = 'constant',  // 'constant' or 'balanced'
+            constantValue = 0,          // 0 or 1 for constant functions
+            balancedType = 'first-bit', // 'first-bit', 'parity', 'custom'
+            customInputs = null          // Array of input indices where f(x) = 1
+        } = config;
+        
+        const circuit = new QuantumCircuit(numQubits);
 
-        // Deutsch-Jozsa algorithm for constant function f(x) = 0
-        circuit.addGate('H', [0]);
-        circuit.addGate('H', [1]);
-        circuit.addGate('X', [1]);
-        circuit.addGate('H', [1]);
-        circuit.addGate('CNOT', [0, 1]);
-        circuit.addGate('H', [0]);
+        // Initialize qubits: first n-1 for input, last for ancilla
+        for (let i = 0; i < numQubits; i++) {
+            circuit.addGate('H', [i]);
+        }
+
+        // Prepare ancilla qubit
+        circuit.addGate('X', [numQubits - 1]);
+        circuit.addGate('H', [numQubits - 1]);
+
+        // Apply oracle based on function type
+        if (functionType === 'constant') {
+            if (constantValue === 1) {
+                // For constant f(x) = 1, apply X to ancilla
+                circuit.addGate('X', [numQubits - 1]);
+            }
+            // For constant f(x) = 0, do nothing (identity)
+        } else if (functionType === 'balanced') {
+            if (balancedType === 'first-bit') {
+                // Simple balanced function: f(x) = x0 (first input bit)
+                circuit.addGate('CNOT', [0, numQubits - 1]);
+            } else if (balancedType === 'parity') {
+                // Balanced function: f(x) = parity of all input bits
+                const inputQubits = numQubits - 1;
+                for (let i = 0; i < inputQubits; i++) {
+                    circuit.addGate('CNOT', [i, numQubits - 1]);
+                }
+            } else if (balancedType === 'custom' && customInputs) {
+                // Custom balanced function using multi-controlled gates
+                const inputQubits = numQubits - 1;
+                
+                // For each input where f(x) = 1, apply a multi-controlled X
+                customInputs.forEach(inputIndex => {
+                    // Create multi-controlled X gate
+                    const controls = [];
+                    for (let i = 0; i < inputQubits; i++) {
+                        const bit = (inputIndex >> (inputQubits - 1 - i)) & 1;
+                        if (bit === 0) {
+                            // If bit is 0, apply X first to make it controlled on |1⟩
+                            circuit.addGate('X', [i]);
+                            controls.push(i);
+                        } else {
+                            controls.push(i);
+                        }
+                    }
+                    
+                    // Apply multi-controlled X to ancilla
+                    if (controls.length === 1) {
+                        circuit.addGate('CNOT', [controls[0], numQubits - 1]);
+                    } else if (controls.length === 2) {
+                        circuit.addGate('TOFFOLI', [controls[0], controls[1], numQubits - 1]);
+                    }
+                    // For more controls, would need more complex implementation
+                    
+                    // Uncompute the X gates
+                    for (let i = 0; i < inputQubits; i++) {
+                        const bit = (inputIndex >> (inputQubits - 1 - i)) & 1;
+                        if (bit === 0) {
+                            circuit.addGate('X', [i]);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Apply Hadamard to input qubits
+        for (let i = 0; i < numQubits - 1; i++) {
+            circuit.addGate('H', [i]);
+        }
+
+        // Add measurements for input qubits to read the result
+        for (let i = 0; i < numQubits - 1; i++) {
+            circuit.addMeasurement(i);
+        }
+
+        // Store metadata for explanation
+        let description = `Determines if function f(x) is ${functionType}. `;
+        if (functionType === 'constant') {
+            description += `Result: |00...0⟩ = constant, other states = balanced`;
+        } else {
+            description += `Result: |00...0⟩ = constant, other states = balanced`;
+        }
+
+        circuit.metadata = {
+            algorithm: 'Deutsch-Jozsa',
+            functionType,
+            constantValue,
+            balancedType,
+            customInputs,
+            description,
+            // Hide specific details until after circuit runs
+            hideDetails: true
+        };
 
         return circuit;
     }
@@ -734,37 +827,74 @@ class QuantumAlgorithms {
     static QuantumFourierTransform(numQubits) {
         const circuit = new QuantumCircuit(numQubits);
 
+        // Apply Hadamard and controlled rotations
         for (let i = 0; i < numQubits; i++) {
             circuit.addGate('H', [i]);
 
+            // Apply controlled RZ gates
             for (let j = i + 1; j < numQubits; j++) {
-                const angle = Math.PI / Math.pow(2, j - i + 1);
+                const angle = Math.PI / Math.pow(2, j - i);
                 circuit.addGate('RZ', [j], { angle });
             }
         }
 
-        // Swap qubits (optional for QFT)
-        for (let i = 0; i < numQubits / 2; i++) {
+        // Swap qubits to reverse order (optional for QFT)
+        for (let i = 0; i < Math.floor(numQubits / 2); i++) {
             circuit.addGate('SWAP', [i, numQubits - 1 - i]);
         }
+
+        // Store metadata for explanation
+        circuit.metadata = {
+            algorithm: 'Quantum Fourier Transform',
+            numQubits,
+            description: `Transforms computational basis to Fourier basis on ${numQubits} qubits`
+        };
 
         return circuit;
     }
 
-    static QuantumTeleportation() {
-        const circuit = new QuantumCircuit(3);
+    static QuantumTeleportation(config = {}) {
+        const { 
+            initialState = '|+⟩',  // State to teleport: '|0⟩', '|1⟩', '|+⟩', '|-⟩'
+            numQubits = 3 
+        } = config;
+        
+        const circuit = new QuantumCircuit(numQubits);
 
-        // Create entangled pair between qubits 1 and 2
+        // Prepare the state to be teleported on qubit 0
+        if (initialState === '|1⟩') {
+            circuit.addGate('X', [0]);
+        } else if (initialState === '|+⟩') {
+            circuit.addGate('H', [0]);
+        } else if (initialState === '|-⟩') {
+            circuit.addGate('H', [0]);
+            circuit.addGate('Z', [0]);
+        }
+        // For '|0⟩', do nothing (already in ground state)
+
+        // Create entangled pair between qubits 1 and 2 (Alice and Bob)
         circuit.addGate('H', [1]);
         circuit.addGate('CNOT', [1, 2]);
 
-        // Bell measurement on qubits 0 and 1
+        // Bell measurement on qubits 0 and 1 (Alice's qubits)
         circuit.addGate('CNOT', [0, 1]);
         circuit.addGate('H', [0]);
 
-        // Measure qubits 0 and 1
+        // Measure qubits 0 and 1 to get classical bits
         circuit.addMeasurement(0);
         circuit.addMeasurement(1);
+
+        // Note: The conditional corrections (X and Z gates on qubit 2) 
+        // would be applied based on measurement results in a real system
+        // In this simulator, we measure all qubits to show the teleportation result
+        circuit.addMeasurement(2);
+
+        // Store metadata for explanation
+        circuit.metadata = {
+            algorithm: 'Quantum Teleportation',
+            initialState,
+            description: `Teleports quantum state ${initialState} from qubit 0 to qubit 2 using entanglement`
+        };
 
         return circuit;
     }

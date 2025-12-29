@@ -964,6 +964,11 @@ class QuantumLab {
             console.log('Output state amplitudes:', result.finalState.amplitudes.map(a => a.toString()));
             this.displayResults(result);
 
+            // Show algorithm info with actual results for Deutsch-Jozsa
+            if (this.circuit.metadata && this.circuit.metadata.algorithm === 'Deutsch-Jozsa') {
+                this.showDeutschJozsaResult(result);
+            }
+
             // Animate state evolution
             this.animateStateEvolution(result);
         } catch (error) {
@@ -1147,7 +1152,18 @@ class QuantumLab {
 
             switch (algorithmName) {
                 case 'deutsch-jozsa':
-                    circuit = QuantumAlgorithms.DeutschJozsa();
+                    // Use stored configuration if available, otherwise default
+                    if (this.deutschJozsaConfig) {
+                        circuit = QuantumAlgorithms.DeutschJozsa(this.deutschJozsaConfig);
+                        console.log('Using stored Deutsch-Jozsa configuration:', this.deutschJozsaConfig);
+                    } else {
+                        // Use default configuration
+                        circuit = QuantumAlgorithms.DeutschJozsa({ 
+                            numQubits: 3, 
+                            functionType: 'balanced' 
+                        });
+                        console.log('Using default Deutsch-Jozsa configuration');
+                    }
                     break;
                 case 'grover':
                     if (this.groverConfig) {
@@ -1164,7 +1180,10 @@ class QuantumLab {
                     circuit = QuantumAlgorithms.QuantumFourierTransform(3);
                     break;
                 case 'teleportation':
-                    circuit = QuantumAlgorithms.QuantumTeleportation();
+                    // Teleport a |+⟩ state by default
+                    circuit = QuantumAlgorithms.QuantumTeleportation({ 
+                        initialState: '|+⟩' 
+                    });
                     break;
                 default:
                     throw new Error(`Unknown algorithm: ${algorithmName}`);
@@ -1186,6 +1205,9 @@ class QuantumLab {
             
             // Regenerate input state controls for the new number of qubits
             this.setupInputStateControls();
+
+            // Don't show algorithm info here - wait until after circuit is run
+            // This prevents "cheating" by showing the answer before running the algorithm
 
             this.showNotification(`Loaded ${algorithmName.replace('-', ' ')} algorithm`, 'success');
         } catch (error) {
@@ -1417,6 +1439,48 @@ class QuantumLab {
         }
     }
 
+    configureDeutschJozsa() {
+        const dialog = document.createElement('div');
+        dialog.className = 'deutsch-jozsa-config-dialog';
+        dialog.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); z-index: 10000; max-width: 400px; width: 90%;';
+
+        dialog.innerHTML = '<h3 style="margin: 0 0 1.5rem 0; color: #6366f1;">Configure Deutsch-Jozsa Algorithm</h3><div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;"><p style="margin: 0; font-size: 0.9rem; color: #1e40af;"><strong style="color: #1e40af;">What is this algorithm?</strong><br>Deutsch-Jozsa determines if a function is <strong>constant</strong> (same output for all inputs) or <strong>balanced</strong> (returns 0 for exactly half the inputs, 1 for the other half).<br><strong style="color: #1e40af;">Note:</strong> This is a theoretical algorithm - real-world functions are usually neither constant nor balanced!</p></div><div style="margin-bottom: 1rem;"><label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Number of Qubits:</label><select id="dj-num-qubits" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;"><option value="2">2 qubits (1 input + 1 ancilla)</option><option value="3">3 qubits (2 input + 1 ancilla)</option><option value="4">4 qubits (3 input + 1 ancilla)</option></select></div><div style="margin-bottom: 1rem;"><label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Function Type:</label><div style="display: flex; gap: 1rem;"><label style="display: flex; align-items: center;"><input type="radio" name="function-type" value="constant" checked style="margin-right: 0.5rem;"><span>Constant</span></label><label style="display: flex; align-items: center;"><input type="radio" name="function-type" value="balanced" style="margin-right: 0.5rem;"><span>Balanced</span></label></div></div><div id="constant-options" style="margin-bottom: 1rem;"><label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Constant Value:</label><div style="display: flex; gap: 1rem;"><label style="display: flex; align-items: center;"><input type="radio" name="constant-value" value="0" checked style="margin-right: 0.5rem;"><span>f(x) = 0</span></label><label style="display: flex; align-items: center;"><input type="radio" name="constant-value" value="1" style="margin-right: 0.5rem;"><span>f(x) = 1</span></label></div></div><div id="balanced-options" style="margin-bottom: 1rem; display: none;"><label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Balanced Function Type:</label><div style="margin-bottom: 0.5rem;"><label style="display: flex; align-items: center; margin-bottom: 0.5rem;"><input type="radio" name="balanced-type" value="first-bit" checked style="margin-right: 0.5rem;"><span>f(x) = x₀ (first input bit)</span></label><label style="display: flex; align-items: center; margin-bottom: 0.5rem;"><input type="radio" name="balanced-type" value="parity" style="margin-right: 0.5rem;"><span>f(x) = parity of all bits</span></label></div></div><div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;"><button class="btn btn-secondary" onclick="this.closest(\'.deutsch-jozsa-config-dialog\').remove()">Cancel</button><button class="btn btn-primary" id="apply-dj-config">Apply</button></div>';
+
+        document.body.appendChild(dialog);
+
+        const functionTypeRadios = dialog.querySelectorAll('input[name="function-type"]');
+        const constantOptions = document.getElementById('constant-options');
+        const balancedOptions = document.getElementById('balanced-options');
+        
+        functionTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                constantOptions.style.display = radio.value === 'constant' ? 'block' : 'none';
+                balancedOptions.style.display = radio.value === 'balanced' ? 'block' : 'none';
+            });
+        });
+
+        dialog.querySelector('#apply-dj-config').addEventListener('click', () => {
+            const numQubits = parseInt(dialog.querySelector('#dj-num-qubits').value);
+            const functionType = dialog.querySelector('input[name="function-type"]:checked').value;
+            const constantValue = functionType === 'constant' ? parseInt(dialog.querySelector('input[name="constant-value"]:checked').value) : 0;
+            const balancedType = functionType === 'balanced' ? dialog.querySelector('input[name="balanced-type"]:checked').value : 'first-bit';
+
+            this.deutschJozsaConfig = { numQubits, functionType, constantValue, balancedType };
+
+            let description = '';
+            if (functionType === 'constant') {
+                description = `constant f(x) = ${constantValue}`;
+            } else if (balancedType === 'first-bit') {
+                description = 'balanced f(x) = x₀';
+            } else if (balancedType === 'parity') {
+                description = 'balanced f(x) = parity of bits';
+            }
+            
+            this.showNotification(`Deutsch-Jozsa configured: ${numQubits} qubits, ${description}`, 'success');
+            document.body.removeChild(dialog);
+        });
+    }
+
     runBenchmarks() {
         try {
             const results = QuantumBenchmark.runBenchmarks();
@@ -1533,6 +1597,156 @@ class QuantumLab {
     showError(message) {
         this.showNotification(message, 'error');
         console.error('QuantumLab Error:', message);
+    }
+
+    showAlgorithmInfo(metadata) {
+        // Remove any existing algorithm info
+        const existingInfo = document.querySelector('.algorithm-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'algorithm-info';
+        infoDiv.style.cssText = `
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        let content = `<h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem;">${metadata.algorithm}</h4>`;
+        content += `<p style="margin: 0.5rem 0; color: rgba(255,255,255,0.9); line-height: 1.5;">${metadata.description}</p>`;
+        
+        if (metadata.functionType) {
+            content += `<p style="margin: 0.25rem 0; color: rgba(255,255,255,0.8);"><strong>Function Type:</strong> ${metadata.functionType}</p>`;
+        }
+        if (metadata.initialState) {
+            content += `<p style="margin: 0.25rem 0; color: rgba(255,255,255,0.8);"><strong>Initial State:</strong> ${metadata.initialState}</p>`;
+        }
+        if (metadata.numQubits) {
+            content += `<p style="margin: 0.25rem 0; color: rgba(255,255,255,0.8);"><strong>Qubits:</strong> ${metadata.numQubits}</p>`;
+        }
+        
+        // Add close button
+        content += `<button onclick="this.parentElement.remove()" style="
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+        ">×</button>`;
+        
+        infoDiv.innerHTML = content;
+        
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Insert after the circuit workspace
+        const workspace = document.getElementById('circuit-workspace');
+        if (workspace && workspace.parentNode) {
+            workspace.parentNode.insertBefore(infoDiv, workspace.nextSibling);
+        }
+        
+        // Don't auto-remove - let user close it manually
+    }
+
+    showDeutschJozsaResult(result) {
+        // Analyze measurement results to determine if function is constant or balanced
+        const metadata = this.circuit.metadata;
+        const numInputQubits = this.numQubits - 1; // Exclude ancilla
+        
+        // Get measurement results for input qubits (not ancilla)
+        let allZeros = true;
+        for (let i = 0; i < numInputQubits; i++) {
+            if (result.measurements && result.measurements[i] === 1) {
+                allZeros = false;
+                break;
+            }
+        }
+        
+        // Determine result
+        const isConstant = allZeros;
+        const actualFunctionType = isConstant ? 'constant' : 'balanced';
+        
+        // Create detailed result message
+        let resultDescription = '';
+        if (metadata.functionType === 'constant') {
+            resultDescription = `✅ Correctly identified as ${actualFunctionType}! The function was indeed ${metadata.functionType} (f(x) = ${metadata.constantValue}).`;
+        } else {
+            if (metadata.balancedType === 'first-bit') {
+                resultDescription = `✅ Correctly identified as ${actualFunctionType}! The function was indeed f(x) = x₀ (first input bit).`;
+            } else if (metadata.balancedType === 'parity') {
+                resultDescription = `✅ Correctly identified as ${actualFunctionType}! The function was indeed parity of all bits.`;
+            } else {
+                resultDescription = `✅ Correctly identified as ${actualFunctionType}! The function was indeed a custom balanced function.`;
+            }
+        }
+        
+        // Show result info
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'algorithm-info deutsch-jozsa-result';
+        infoDiv.style.cssText = `
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        let content = `<h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem;">Deutsch-Jozsa Result</h4>`;
+        content += `<p style="margin: 0.5rem 0; color: rgba(255,255,255,0.9); line-height: 1.5;">${resultDescription}</p>`;
+        content += `<div style="background: rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">`;
+        content += `<p style="margin: 0; font-size: 0.85rem;"><strong>Measurement Pattern:</strong> ${allZeros ? 'All zeros' : 'Not all zeros'}</p>`;
+        content += `<p style="margin: 0.5rem 0 0 0; font-size: 0.85rem;"><strong>Interpretation:</strong> ${allZeros ? '|00...0⟩ = constant function' : 'Other states = balanced function'}</p>`;
+        content += `</div>`;
+        
+        // Add close button
+        content += `<button onclick="this.parentElement.remove()" style="
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+        ">×</button>`;
+        
+        infoDiv.innerHTML = content;
+        
+        // Insert after circuit workspace
+        const workspace = document.getElementById('circuit-workspace');
+        if (workspace && workspace.parentNode) {
+            workspace.parentNode.insertBefore(infoDiv, workspace.nextSibling);
+        }
     }
 
     createClassicalGateMatrix(gateName) {
