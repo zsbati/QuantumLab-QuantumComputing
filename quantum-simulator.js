@@ -834,7 +834,7 @@ class QuantumAlgorithms {
             // Apply controlled RZ gates
             for (let j = i + 1; j < numQubits; j++) {
                 const angle = Math.PI / Math.pow(2, j - i);
-                circuit.addGate('RZ', [j], { angle });
+                circuit.addGate('CRZ', [i, j], { angle });
             }
         }
 

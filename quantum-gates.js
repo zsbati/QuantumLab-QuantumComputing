@@ -97,6 +97,21 @@ class QuantumGates {
         ]);
     }
     
+    static CRZ(angle) {
+        // Controlled RZ gate: applies RZ rotation to target if control is |1⟩
+        const cos = Math.cos(angle / 2);
+        const sin = Math.sin(angle / 2);
+        const expMinus = Complex.fromPolar(1, -angle/2);
+        const expPlus = Complex.fromPolar(1, angle/2);
+        
+        return Matrix.fromArray([
+            [new Complex(1, 0), new Complex(0, 0), new Complex(0, 0), new Complex(0, 0)],
+            [new Complex(0, 0), new Complex(1, 0), new Complex(0, 0), new Complex(0, 0)],
+            [new Complex(0, 0), new Complex(0, 0), expMinus, new Complex(0, 0)],
+            [new Complex(0, 0), new Complex(0, 0), new Complex(0, 0), expPlus]
+        ]);
+    }
+    
     static SWAP() {
         return Matrix.fromArray([
             [new Complex(1, 0), new Complex(0, 0), new Complex(0, 0), new Complex(0, 0)],
@@ -204,6 +219,10 @@ class QuantumGates {
             case 'CZ':
             case 'CONTROLLED_Z':
                 return this.CZ();
+            case 'CRZ':
+            case 'CONTROLLED_RZ':
+                if (params.length === 0) throw new Error("CRZ gate requires angle parameter");
+                return this.CRZ(params[0]);
             case 'SWAP':
                 return this.SWAP();
             case 'TOFFOLI':
