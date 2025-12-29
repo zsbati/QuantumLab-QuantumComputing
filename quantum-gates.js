@@ -221,8 +221,8 @@ class QuantumGates {
                 return this.CZ();
             case 'CRZ':
             case 'CONTROLLED_RZ':
-                if (params.length === 0) throw new Error("CRZ gate requires angle parameter");
-                return this.CRZ(params[0]);
+                if (params.length === 0 && !params.angle) throw new Error("CRZ gate requires angle parameter");
+                return this.CRZ(params.angle || params[0]);
             case 'SWAP':
                 return this.SWAP();
             case 'TOFFOLI':
@@ -257,6 +257,7 @@ class QuantumGates {
             'RZ': { name: 'Rotation-Z', qubits: 1, params: 1, description: 'Rotation around Z axis' },
             'CNOT': { name: 'Controlled-NOT', qubits: 2, params: 0, description: 'Conditional bit flip' },
             'CZ': { name: 'Controlled-Z', qubits: 2, params: 0, description: 'Conditional phase flip' },
+            'CRZ': { name: 'Controlled-RZ', qubits: 2, params: 1, description: 'Conditional rotation around Z axis' },
             'SWAP': { name: 'SWAP', qubits: 2, params: 0, description: 'Exchanges two qubits' },
             'TOFFOLI': { name: 'Toffoli', qubits: 3, params: 0, description: 'Controlled-controlled-NOT' },
             'FREDKIN': { name: 'Fredkin', qubits: 3, params: 0, description: 'Controlled-SWAP' }
@@ -268,7 +269,7 @@ class QuantumGates {
     static getAllGates() {
         return [
             'H', 'X', 'Y', 'Z', 'S', 'T', 'RX', 'RY', 'RZ',
-            'CNOT', 'CZ', 'SWAP', 'TOFFOLI', 'FREDKIN'
+            'CNOT', 'CZ', 'CRZ', 'SWAP', 'TOFFOLI', 'FREDKIN'
         ];
     }
     
