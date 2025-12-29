@@ -925,19 +925,14 @@ class QuantumLab {
     }
 
     runCircuit() {
-        console.log('Run circuit called');
         try {
-            if (!this.circuit) {
-                throw new Error('No circuit exists');
-            }
-
+            console.log('runCircuit called');
+            console.log('Current circuit:', this.circuit);
+            console.log('Circuit metadata:', this.circuit?.metadata);
+            
+            console.log('Run circuit called');
             // Check if circuit state exists using try block
-            try {
-                if (!this.circuit.state) {
-                    this.showError('Circuit state not initialized. Please set an input state first.');
-                    return;
-                }
-            } catch (stateError) {
+            if (!this.circuit.state) {
                 this.showError('Circuit state not initialized. Please set an input state first.');
                 return;
             }
@@ -967,6 +962,13 @@ class QuantumLab {
             // Show algorithm info with actual results for Deutsch-Jozsa
             if (this.circuit.metadata && this.circuit.metadata.algorithm === 'Deutsch-Jozsa') {
                 this.showDeutschJozsaResult(result);
+            }
+
+            // Show QFT transformation details
+            console.log('Circuit metadata:', this.circuit.metadata);
+            console.log('Algorithm name:', this.circuit.metadata?.algorithm);
+            if (this.circuit.metadata && this.circuit.metadata.algorithm === 'Quantum Fourier Transform') {
+                this.showQFTResult(result);
             }
 
             // Animate state evolution
@@ -1177,7 +1179,22 @@ class QuantumLab {
                     }
                     break;
                 case 'quantum-fourier':
-                    circuit = QuantumAlgorithms.QuantumFourierTransform(3);
+                    try {
+                        console.log('Loading QFT algorithm...');
+                        if (this.qftConfig) {
+                            circuit = QuantumAlgorithms.QuantumFourierTransform(this.qftConfig);
+                            console.log('Using stored QFT configuration:', this.qftConfig);
+                        } else {
+                            // Use default configuration
+                            circuit = QuantumAlgorithms.QuantumFourierTransform({ numQubits: 3 });
+                            console.log('Using default QFT configuration');
+                        }
+                        console.log('QFT circuit created:', circuit);
+                        console.log('QFT circuit metadata:', circuit.metadata);
+                    } catch (error) {
+                        console.error('Error loading QFT:', error);
+                        alert('Error loading QFT: ' + error.message);
+                    }
                     break;
                 case 'teleportation':
                     // Teleport a |+⟩ state by default
@@ -1481,6 +1498,101 @@ class QuantumLab {
         });
     }
 
+    configureQFT() {
+        const dialog = document.createElement('div');
+        dialog.className = 'qft-config-dialog';
+        dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+            max-width: 450px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        `;
+
+        dialog.innerHTML = `
+            <h3 style="margin: 0 0 1.5rem 0; color: #6366f1;">Configure Quantum Fourier Transform</h3>
+            <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 0.75rem; margin-bottom: 1rem; border-radius: 4px;">
+                <p style="margin: 0; font-size: 0.85rem; color: #1e40af;"><strong style="color: #1e40af;">QFT:</strong> Transforms from computational basis (|0⟩, |1⟩, |2⟩...) to Fourier basis (|ω₀⟩, |ω₁⟩, |ω₂⟩...). Like changing from position to momentum representation.</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Number of Qubits:</label>
+                <select id="qft-num-qubits" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                    <option value="2">2 qubits</option>
+                    <option value="3">3 qubits</option>
+                    <option value="4">4 qubits</option>
+                    <option value="5">5 qubits</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Initial State:</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="display: flex; align-items: center;">
+                        <input type="radio" name="initial-state" value="default" checked style="margin-right: 0.5rem;">
+                        <span>Default |000...0⟩ (computational basis)</span>
+                    </label>
+                    <label style="display: flex; align-items: center;">
+                        <input type="radio" name="initial-state" value="|1⟩" style="margin-right: 0.5rem;">
+                        <span>|1⟩ (first qubit) - shows uniform superposition</span>
+                    </label>
+                    <label style="display: flex; align-items: center;">
+                        <input type="radio" name="initial-state" value="|+⟩" style="margin-right: 0.5rem;">
+                        <span>|+⟩ (superposition) - shows phase effects</span>
+                    </label>
+                    <label style="display: flex; align-items: center;">
+                        <input type="radio" name="initial-state" value="|01⟩" style="margin-right: 0.5rem;">
+                        <span>|01⟩ (specific computational state)</span>
+                    </label>
+                </div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Include SWAP operations?</label>
+                <div style="display: flex; gap: 1rem;">
+                    <label style="display: flex; align-items: center;">
+                        <input type="radio" name="include-swap" value="yes" checked style="margin-right: 0.5rem;">
+                        <span>Yes (reverse qubit order)</span>
+                    </label>
+                    <label style="display: flex; align-items: center;">
+                        <input type="radio" name="include-swap" value="no" style="margin-right: 0.5rem;">
+                        <span>No (keep order)</span>
+                    </label>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="this.closest('.qft-config-dialog').remove()">Cancel</button>
+                <button class="btn btn-primary" id="apply-qft-config">Apply</button>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Handle apply button
+        dialog.querySelector('#apply-qft-config').addEventListener('click', () => {
+            const numQubits = parseInt(dialog.querySelector('#qft-num-qubits').value);
+            const includeSwap = dialog.querySelector('input[name="include-swap"]:checked').value === 'yes';
+            const initialStateOption = dialog.querySelector('input[name="initial-state"]:checked').value;
+
+            // Store configuration
+            this.qftConfig = {
+                numQubits,
+                includeSwap,
+                initialState: initialStateOption === 'default' ? null : initialStateOption
+            };
+
+            const stateDescription = initialStateOption === 'default' ? 'default |000...0⟩' : initialStateOption;
+            const swapDescription = includeSwap ? 'with SWAP operations' : 'without SWAP operations';
+            this.showNotification(`QFT configured: ${numQubits} qubits, ${stateDescription}, ${swapDescription}`, 'success');
+            document.body.removeChild(dialog);
+        });
+    }
+
     runBenchmarks() {
         try {
             const results = QuantumBenchmark.runBenchmarks();
@@ -1723,6 +1835,79 @@ class QuantumLab {
         content += `<div style="background: rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">`;
         content += `<p style="margin: 0; font-size: 0.85rem;"><strong>Measurement Pattern:</strong> ${allZeros ? 'All zeros' : 'Not all zeros'}</p>`;
         content += `<p style="margin: 0.5rem 0 0 0; font-size: 0.85rem;"><strong>Interpretation:</strong> ${allZeros ? '|00...0⟩ = constant function' : 'Other states = balanced function'}</p>`;
+        content += `</div>`;
+        
+        // Add close button
+        content += `<button onclick="this.parentElement.remove()" style="
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+        ">×</button>`;
+        
+        infoDiv.innerHTML = content;
+        
+        // Insert after circuit workspace
+        const workspace = document.getElementById('circuit-workspace');
+        if (workspace && workspace.parentNode) {
+            workspace.parentNode.insertBefore(infoDiv, workspace.nextSibling);
+        }
+    }
+
+    showQFTResult(result) {
+        const metadata = this.circuit.metadata;
+        
+        // Determine the actual input state based on configuration
+        let actualInputState = '|00⟩'; // default
+        if (metadata.initialState) {
+            if (metadata.initialState === '|1⟩') {
+                actualInputState = '|10⟩'; // |1⟩ on first qubit = |10⟩ in 2-qubit system
+            } else if (metadata.initialState === '|+⟩') {
+                actualInputState = '|+0⟩ = 0.7071|00⟩ + 0.7071|10⟩';
+            } else if (metadata.initialState === '|-⟩') {
+                actualInputState = '|-0⟩ = 0.7071|00⟩ - 0.7071|10⟩';
+            } else if (metadata.initialState === '|01⟩') {
+                actualInputState = '|01⟩';
+            }
+        }
+        
+        // Show transformation info
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'algorithm-info qft-result';
+        infoDiv.style.cssText = `
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        let content = `<h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem;">Quantum Fourier Transform Result</h4>`;
+        content += `<p style="margin: 0.5rem 0; color: rgba(255,255,255,0.9); line-height: 1.5;">Transformed ${metadata.numQubits}-qubit state from computational to Fourier basis.</p>`;
+        
+        // Show input and output states
+        content += `<div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">`;
+        content += `<h5 style="margin: 0 0 0.5rem 0; color: white;">Input State (Computational Basis):</h5>`;
+        content += `<p style="margin: 0; font-size: 0.85rem; font-family: monospace;">|ψ⟩ = ${actualInputState}</p>`;
+        content += `<h5 style="margin: 1rem 0 0.5rem 0; color: white;">Output State (Fourier Basis):</h5>`;
+        content += `<p style="margin: 0; font-size: 0.85rem; font-family: monospace;">${result.finalState.toString()}</p>`;
+        content += `</div>`;
+        
+        // Add interpretation
+        content += `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">`;
+        content += `<p style="margin: 0; font-size: 0.85rem;"><strong style="color: #fbbf24;">Key Insight:</strong> The quantum information is the same, just represented in a different basis. Think of it like changing coordinates from Cartesian to polar - the point doesn't move, but we describe it differently.</p>`;
         content += `</div>`;
         
         // Add close button

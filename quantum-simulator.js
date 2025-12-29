@@ -824,8 +824,23 @@ class QuantumAlgorithms {
         }
     }
 
-    static QuantumFourierTransform(numQubits) {
+    static QuantumFourierTransform(config = {}) {
+        const { numQubits = 3, includeSwap = true, initialState = null } = config;
         const circuit = new QuantumCircuit(numQubits);
+
+        // Prepare initial state if specified
+        if (initialState) {
+            if (initialState === '|1⟩') {
+                circuit.addGate('X', [0]); // Set first qubit to |1⟩
+            } else if (initialState === '|+⟩') {
+                circuit.addGate('H', [0]); // Set first qubit to |+⟩
+            } else if (initialState === '|-⟩') {
+                circuit.addGate('H', [0]); // Set first qubit to |+⟩
+                circuit.addGate('Z', [0]); // Apply phase to create |-⟩
+            } else if (initialState === '|01⟩' && numQubits >= 2) {
+                circuit.addGate('X', [1]); // Set second qubit to |1⟩ for |01⟩ state
+            }
+        }
 
         // Apply Hadamard and controlled rotations
         for (let i = 0; i < numQubits; i++) {
@@ -839,15 +854,19 @@ class QuantumAlgorithms {
         }
 
         // Swap qubits to reverse order (optional for QFT)
-        for (let i = 0; i < Math.floor(numQubits / 2); i++) {
-            circuit.addGate('SWAP', [i, numQubits - 1 - i]);
+        if (includeSwap) {
+            for (let i = 0; i < Math.floor(numQubits / 2); i++) {
+                circuit.addGate('SWAP', [i, numQubits - 1 - i]);
+            }
         }
 
         // Store metadata for explanation
         circuit.metadata = {
             algorithm: 'Quantum Fourier Transform',
             numQubits,
-            description: `Transforms computational basis to Fourier basis on ${numQubits} qubits`
+            includeSwap,
+            initialState,
+            description: `Transforms computational basis to Fourier basis on ${numQubits} qubits ${includeSwap ? 'with SWAP operations' : 'without SWAP operations'}`
         };
 
         return circuit;

@@ -184,7 +184,10 @@
                     <div class="algorithm-card" data-algorithm="quantum-fourier">
                         <h3>Quantum Fourier Transform</h3>
                         <p>Quantum version of discrete Fourier transform</p>
-                        <button class="btn btn-outline">Load Algorithm</button>
+                        <div class="algorithm-buttons">
+                            <button class="btn btn-outline" onclick="quantumLab.configureQFT()">Configure</button>
+                            <button class="btn btn-outline" onclick="quantumLab.loadAlgorithm('quantum-fourier')">Load Algorithm</button>
+                        </div>
                     </div>
                     <div class="algorithm-card" data-algorithm="teleportation">
                         <h3>Quantum Teleportation</h3>
