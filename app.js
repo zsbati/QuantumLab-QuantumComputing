@@ -899,21 +899,21 @@ class QuantumLab {
         try {
             // Clear both the circuitBuilder's circuit and the main circuit
             this.circuitBuilder.reset();
-            
+
             // Clear the main circuit's gates directly
             if (this.circuit) {
                 this.circuit.gates = [];
                 this.circuit.measurements = [];
             }
-            
+
             // Create a fresh circuit
             this.circuit = this.circuitBuilder.createCircuit(this.numQubits);
-            
+
             // Ensure the new circuit has a state initialized
             if (!this.circuit.state) {
                 this.circuit.state = new QuantumState(this.numQubits);
             }
-            
+
             console.log('Circuit cleared:', this.circuit);
             this.updateCircuitDisplay();
             this.updateVisualization();
@@ -929,7 +929,7 @@ class QuantumLab {
             console.log('runCircuit called');
             console.log('Current circuit:', this.circuit);
             console.log('Circuit metadata:', this.circuit?.metadata);
-            
+
             console.log('Run circuit called');
             // Check if circuit state exists using try block
             if (!this.circuit.state) {
@@ -960,8 +960,13 @@ class QuantumLab {
             this.displayResults(result);
 
             // Show algorithm info with actual results for Deutsch-Jozsa
-            if (this.circuit.metadata && this.circuit.metadata.algorithm === 'Deutsch-Jozsa') {
-                this.showDeutschJozsaResult(result);
+            // Show algorithm-specific results
+            if (this.circuit.metadata) {
+                if (this.circuit.metadata.algorithm === 'Deutsch-Jozsa') {
+                    this.showDeutschJozsaResult(result);
+                } else if (this.circuit.metadata.algorithm === 'Quantum Teleportation') {
+                    this.showTeleportationResult(result);
+                }
             }
 
             // Show QFT transformation details
@@ -1160,9 +1165,9 @@ class QuantumLab {
                         console.log('Using stored Deutsch-Jozsa configuration:', this.deutschJozsaConfig);
                     } else {
                         // Use default configuration
-                        circuit = QuantumAlgorithms.DeutschJozsa({ 
-                            numQubits: 3, 
-                            functionType: 'balanced' 
+                        circuit = QuantumAlgorithms.DeutschJozsa({
+                            numQubits: 3,
+                            functionType: 'balanced'
                         });
                         console.log('Using default Deutsch-Jozsa configuration');
                     }
@@ -1198,8 +1203,8 @@ class QuantumLab {
                     break;
                 case 'teleportation':
                     // Teleport a |+⟩ state by default
-                    circuit = QuantumAlgorithms.QuantumTeleportation({ 
-                        initialState: '|+⟩' 
+                    circuit = QuantumAlgorithms.QuantumTeleportation({
+                        initialState: '|+⟩'
                     });
                     break;
                 default:
@@ -1208,18 +1213,18 @@ class QuantumLab {
 
             this.circuit = circuit;
             this.numQubits = circuit.numQubits;
-            
+
             // Ensure the circuit has a state initialized
             if (!this.circuit.state) {
                 this.circuit.state = new QuantumState(this.numQubits);
             }
-            
+
             this.circuitBuilder.createCircuit(this.numQubits);
             this.circuitBuilder.circuit = circuit;
 
             this.updateCircuitDisplay();
             this.updateVisualization();
-            
+
             // Regenerate input state controls for the new number of qubits
             this.setupInputStateControls();
 
@@ -1428,12 +1433,12 @@ class QuantumLab {
             // Update the circuit and UI
             this.circuit = circuit;
             this.numQubits = circuit.numQubits;
-            
+
             // Ensure the circuit has a state initialized
             if (!this.circuit.state) {
                 this.circuit.state = new QuantumState(this.numQubits);
             }
-            
+
             this.circuitBuilder.createCircuit(this.numQubits);
             this.circuitBuilder.circuit = circuit;
 
@@ -1468,7 +1473,7 @@ class QuantumLab {
         const functionTypeRadios = dialog.querySelectorAll('input[name="function-type"]');
         const constantOptions = document.getElementById('constant-options');
         const balancedOptions = document.getElementById('balanced-options');
-        
+
         functionTypeRadios.forEach(radio => {
             radio.addEventListener('change', () => {
                 constantOptions.style.display = radio.value === 'constant' ? 'block' : 'none';
@@ -1492,7 +1497,7 @@ class QuantumLab {
             } else if (balancedType === 'parity') {
                 description = 'balanced f(x) = parity of bits';
             }
-            
+
             this.showNotification(`Deutsch-Jozsa configured: ${numQubits} qubits, ${description}`, 'success');
             document.body.removeChild(dialog);
         });
@@ -1732,10 +1737,10 @@ class QuantumLab {
             position: relative;
             animation: slideIn 0.3s ease-out;
         `;
-        
+
         let content = `<h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem;">${metadata.algorithm}</h4>`;
         content += `<p style="margin: 0.5rem 0; color: rgba(255,255,255,0.9); line-height: 1.5;">${metadata.description}</p>`;
-        
+
         if (metadata.functionType) {
             content += `<p style="margin: 0.25rem 0; color: rgba(255,255,255,0.8);"><strong>Function Type:</strong> ${metadata.functionType}</p>`;
         }
@@ -1745,7 +1750,7 @@ class QuantumLab {
         if (metadata.numQubits) {
             content += `<p style="margin: 0.25rem 0; color: rgba(255,255,255,0.8);"><strong>Qubits:</strong> ${metadata.numQubits}</p>`;
         }
-        
+
         // Add close button
         content += `<button onclick="this.parentElement.remove()" style="
             position: absolute;
@@ -1760,9 +1765,9 @@ class QuantumLab {
             cursor: pointer;
             font-size: 12px;
         ">×</button>`;
-        
+
         infoDiv.innerHTML = content;
-        
+
         // Add CSS animation
         const style = document.createElement('style');
         style.textContent = `
@@ -1772,13 +1777,13 @@ class QuantumLab {
             }
         `;
         document.head.appendChild(style);
-        
+
         // Insert after the circuit workspace
         const workspace = document.getElementById('circuit-workspace');
         if (workspace && workspace.parentNode) {
             workspace.parentNode.insertBefore(infoDiv, workspace.nextSibling);
         }
-        
+
         // Don't auto-remove - let user close it manually
     }
 
@@ -1786,7 +1791,7 @@ class QuantumLab {
         // Analyze measurement results to determine if function is constant or balanced
         const metadata = this.circuit.metadata;
         const numInputQubits = this.numQubits - 1; // Exclude ancilla
-        
+
         // Get measurement results for input qubits (not ancilla)
         let allZeros = true;
         for (let i = 0; i < numInputQubits; i++) {
@@ -1795,11 +1800,11 @@ class QuantumLab {
                 break;
             }
         }
-        
+
         // Determine result
         const isConstant = allZeros;
         const actualFunctionType = isConstant ? 'constant' : 'balanced';
-        
+
         // Create detailed result message
         let resultDescription = '';
         if (metadata.functionType === 'constant') {
@@ -1813,7 +1818,7 @@ class QuantumLab {
                 resultDescription = `✅ Correctly identified as ${actualFunctionType}! The function was indeed a custom balanced function.`;
             }
         }
-        
+
         // Show result info
         const infoDiv = document.createElement('div');
         infoDiv.className = 'algorithm-info deutsch-jozsa-result';
@@ -1829,14 +1834,14 @@ class QuantumLab {
             position: relative;
             animation: slideIn 0.3s ease-out;
         `;
-        
+
         let content = `<h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem;">Deutsch-Jozsa Result</h4>`;
         content += `<p style="margin: 0.5rem 0; color: rgba(255,255,255,0.9); line-height: 1.5;">${resultDescription}</p>`;
         content += `<div style="background: rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">`;
         content += `<p style="margin: 0; font-size: 0.85rem;"><strong>Measurement Pattern:</strong> ${allZeros ? 'All zeros' : 'Not all zeros'}</p>`;
         content += `<p style="margin: 0.5rem 0 0 0; font-size: 0.85rem;"><strong>Interpretation:</strong> ${allZeros ? '|00...0⟩ = constant function' : 'Other states = balanced function'}</p>`;
         content += `</div>`;
-        
+
         // Add close button
         content += `<button onclick="this.parentElement.remove()" style="
             position: absolute;
@@ -1851,9 +1856,9 @@ class QuantumLab {
             cursor: pointer;
             font-size: 12px;
         ">×</button>`;
-        
+
         infoDiv.innerHTML = content;
-        
+
         // Insert after circuit workspace
         const workspace = document.getElementById('circuit-workspace');
         if (workspace && workspace.parentNode) {
@@ -1861,9 +1866,61 @@ class QuantumLab {
         }
     }
 
+    showTeleportationResult(result) {
+        // Create result container
+        const container = document.createElement('div');
+        container.className = 'teleportation-result';
+        container.style.cssText = `
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    `;
+
+        // Get measurement results
+        const aliceQubit = result.measurements[0];
+        const bobQubit = result.measurements[1];
+        const teleportedQubit = result.measurements[2];
+
+        // Create result content
+        let content = `
+        <h3 style="margin-top: 0; color: white;">🔮 Quantum Teleportation Results</h3>
+        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <p style="margin: 0.5rem 0;">
+                <strong>Initial State (Qubit 0):</strong> ${this.circuit.metadata.initialState}
+            </p>
+            <p style="margin: 0.5rem 0;">
+                <strong>Alice's Measurement (Qubit 0 & 1):</strong> ${aliceQubit.result}
+            </p>
+            <p style="margin: 0.5rem 0;">
+                <strong>Bob's Qubit (Qubit 2):</strong> ${teleportedQubit.result}
+            </p>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
+            <h4 style="margin-top: 0; color: #93c5fd;">What Happened:</h4>
+            <ol style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+                <li>Qubit 0 was prepared in state ${this.circuit.metadata.initialState}</li>
+                <li>Qubits 1 & 2 were entangled (Bell pair)</li>
+                <li>Alice performed a Bell measurement on Qubits 0 & 1</li>
+                <li>Bob's qubit (Qubit 2) was projected into the teleported state</li>
+            </ol>
+        </div>
+    `;
+
+        container.innerHTML = content;
+
+        // Insert after circuit workspace
+        const workspace = document.getElementById('circuit-workspace');
+        if (workspace && workspace.parentNode) {
+            workspace.parentNode.insertBefore(container, workspace.nextSibling);
+        }
+    }
+
     showQFTResult(result) {
         const metadata = this.circuit.metadata;
-        
+
         // Determine the actual input state based on configuration
         let actualInputState = '|00⟩'; // default
         if (metadata.initialState) {
@@ -1877,7 +1934,7 @@ class QuantumLab {
                 actualInputState = '|01⟩';
             }
         }
-        
+
         // Show transformation info
         const infoDiv = document.createElement('div');
         infoDiv.className = 'algorithm-info qft-result';
@@ -1893,10 +1950,10 @@ class QuantumLab {
             position: relative;
             animation: slideIn 0.3s ease-out;
         `;
-        
+
         let content = `<h4 style="margin: 0 0 1rem 0; color: white; font-size: 1.1rem;">Quantum Fourier Transform Result</h4>`;
         content += `<p style="margin: 0.5rem 0; color: rgba(255,255,255,0.9); line-height: 1.5;">Transformed ${metadata.numQubits}-qubit state from computational to Fourier basis.</p>`;
-        
+
         // Show input and output states
         content += `<div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">`;
         content += `<h5 style="margin: 0 0 0.5rem 0; color: white;">Input State (Computational Basis):</h5>`;
@@ -1904,12 +1961,12 @@ class QuantumLab {
         content += `<h5 style="margin: 1rem 0 0.5rem 0; color: white;">Output State (Fourier Basis):</h5>`;
         content += `<p style="margin: 0; font-size: 0.85rem; font-family: monospace;">${result.finalState.toString()}</p>`;
         content += `</div>`;
-        
+
         // Add interpretation
         content += `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">`;
         content += `<p style="margin: 0; font-size: 0.85rem;"><strong style="color: #fbbf24;">Key Insight:</strong> The quantum information is the same, just represented in a different basis. Think of it like changing coordinates from Cartesian to polar - the point doesn't move, but we describe it differently.</p>`;
         content += `</div>`;
-        
+
         // Add close button
         content += `<button onclick="this.parentElement.remove()" style="
             position: absolute;
@@ -1924,9 +1981,9 @@ class QuantumLab {
             cursor: pointer;
             font-size: 12px;
         ">×</button>`;
-        
+
         infoDiv.innerHTML = content;
-        
+
         // Insert after circuit workspace
         const workspace = document.getElementById('circuit-workspace');
         if (workspace && workspace.parentNode) {

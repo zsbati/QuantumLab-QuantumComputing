@@ -90,7 +90,7 @@ class QuantumCircuit {
 
         for (let shot = 0; shot < shots; shot++) {
             this.reset();
-            const shotResult = this.executeSingleShot();
+            let shotResult = this.executeSingleShot();
             results.push(shotResult);
         }
 
@@ -135,7 +135,7 @@ class QuantumCircuit {
 
         // Perform measurements
         for (const measurement of this.measurements) {
-            const measurementResult = this.measureQubit(measurement.qubit);
+            let measurementResult = this.measureQubit(measurement.qubit);
             measurement.result = measurementResult;
             result.measurements.push(measurementResult);
         }
@@ -357,11 +357,11 @@ class QuantumCircuit {
     
     measureQubit(qubit) {
         // Get probabilities for measuring this specific qubit
-        const probabilities = this.getQubitProbabilities(qubit);
+        let probabilities = this.getQubitProbabilities(qubit);
 
         // Random measurement
-        const random = Math.random();
-        const result = random < probabilities[0] ? 0 : 1;
+        let random = Math.random();
+        let result = random < probabilities[0] ? 0 : 1;
 
         // Collapse the state based on measurement result
         this.collapseQubit(qubit, result);
@@ -374,8 +374,8 @@ class QuantumCircuit {
     }
 
     getQubitProbabilities(qubit) {
-        const prob0 = 0;
-        const prob1 = 0;
+        let prob0 = 0;
+        let prob1 = 0;
 
         for (let i = 0; i < this.state.dimension; i++) {
             const bit = (i >> (this.numQubits - 1 - qubit)) & 1;
@@ -417,8 +417,8 @@ class QuantumCircuit {
         }
 
         // Aggregate measurement statistics
-        const measurementStats = {};
-        const allBitStrings = {};
+        let measurementStats = {};
+        let allBitStrings = {};
 
         results.forEach(result => {
             // Aggregate individual qubit measurements
