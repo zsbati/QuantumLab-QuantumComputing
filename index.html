@@ -196,7 +196,12 @@
                     <div class="algorithm-card" data-algorithm="teleportation">
                         <h3>Quantum Teleportation</h3>
                         <p>Transfer quantum state between qubits</p>
-                        <button class="btn btn-outline">Load Algorithm</button>
+                        <div class="algorithm-buttons">
+                            <button class="btn btn-outline"
+                                onclick="quantumLab.configureTeleportation()">Configure</button>
+                            <button class="btn btn-outline" onclick="quantumLab.loadAlgorithm('teleportation')">Load
+                                Algorithm</button>
+                        </div>
                     </div>
                     <div class="algorithm-card" data-algorithm="shors">
                         <h3>Shor's Algorithm</h3>

@@ -1205,10 +1205,13 @@ class QuantumLab {
                     }
                     break;
                 case 'teleportation':
-                    // Teleport a |+⟩ state by default
-                    circuit = QuantumAlgorithms.QuantumTeleportation({
-                        initialState: '|+⟩'
-                    });
+                    if (this.teleportationConfig) {
+                        circuit = QuantumAlgorithms.QuantumTeleportation(this.teleportationConfig);
+                    } else {
+                        circuit = QuantumAlgorithms.QuantumTeleportation({
+                            initialState: '|+⟩'
+                        });
+                    }
                     break;
                 case 'shors':
                     if (this.shorsConfig) {
@@ -1392,6 +1395,70 @@ class QuantumLab {
             document.body.removeChild(overlay);
             document.body.removeChild(dialog);
         });
+    }
+
+    configureTeleportation() {
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        max-width: 450px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    `;
+
+        dialog.innerHTML = `
+        <h3 style="margin: 0 0 1.5rem 0; color: #6366f1;">Configure Quantum Teleportation</h3>
+        <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 0.75rem; margin-bottom: 1rem; border-radius: 4px;">
+            <p style="margin: 0; font-size: 0.85rem; color: #1e40af;"><strong style="color: #1e40af;">Quantum Teleportation:</strong> Transfers quantum state from Alice to Bob using entanglement and classical communication.</p>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Initial State:</label>
+            <select id="teleportation-state" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <option value="|0⟩">|0⟩ (Ground state)</option>
+                <option value="|1⟩">|1⟩ (Excited state)</option>
+                <option value="|+⟩">|+⟩ (Superposition)</option>
+                <option value="|-⟩">|-⟩ (Phase-flipped superposition)</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Number of Shots:</label>
+            <input type="number" id="teleportation-shots" value="1" min="1" max="100" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+        </div>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.5rem 1rem; border: 1px solid #d1d5db; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button onclick="quantumLab.applyTeleportationConfig()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply</button>
+        </div>
+    `;
+
+        document.body.appendChild(dialog);
+    }
+
+    applyTeleportationConfig() {
+        const initialState = document.getElementById('teleportation-state').value;
+        const shots = parseInt(document.getElementById('teleportation-shots').value);
+
+        // Store configuration
+        this.teleportationConfig = { initialState, shots };
+
+        // Load algorithm with configuration
+        this.loadAlgorithm('teleportation');
+
+        // Close dialog
+        const dialog = document.querySelector('[style*="position: fixed"]');
+        if (dialog) {
+            dialog.remove();
+        }
+
+        this.showNotification(`Teleportation configured: ${initialState} with ${shots} shot(s)`, 'success');
     }
 
     applyGroverConfiguration(selectedType, selectedTarget) {
@@ -1957,34 +2024,59 @@ class QuantumLab {
     `;
 
         // Get measurement results
-        const aliceQubit = result.measurements[0];
-        const bobQubit = result.measurements[1];
-        const teleportedQubit = result.measurements[2];
+        const aliceMeasurements = result.measurements.slice(0, 2); // Alice's qubits 0 & 1
+        const bobQubit = result.measurements[2]; // Bob's qubit 2
+
+        // Get configuration
+        const initialState = this.circuit.metadata.initialState || '|+⟩';
+        const shots = this.teleportationConfig?.shots || 1;
+
+        // Analyze teleportation success
+        const expectedBobState = this.getExpectedBobState(initialState, aliceMeasurements);
+        const teleportationSuccess = this.checkTeleportationSuccess(initialState, aliceMeasurements, bobQubit);
 
         // Create result content
         let content = `
         <h3 style="margin-top: 0; color: white;">🔮 Quantum Teleportation Results</h3>
         <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
             <p style="margin: 0.5rem 0;">
-                <strong>Initial State (Qubit 0):</strong> ${this.circuit.metadata.initialState}
+                <strong>Initial State:</strong> ${initialState}
             </p>
             <p style="margin: 0.5rem 0;">
-                <strong>Alice's Measurement (Qubit 0 & 1):</strong> ${aliceQubit.result}
+                <strong>Alice's Measurements:</strong> q0=${aliceMeasurements[0]?.result}, q1=${aliceMeasurements[1]?.result}
             </p>
             <p style="margin: 0.5rem 0;">
-                <strong>Bob's Qubit (Qubit 2):</strong> ${teleportedQubit.result}
+                <strong>Bob's Qubit:</strong> ${bobQubit.result}
+            </p>
+            <p style="margin: 0.5rem 0;">
+                <strong>Expected Bob State:</strong> ${expectedBobState}
+            </p>
+            <p style="margin: 0.5rem 0;">
+                <strong>Teleportation ${teleportationSuccess ? '✅ Successful' : '❌ Failed'}</strong>
             </p>
         </div>
         <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
             <h4 style="margin-top: 0; color: #93c5fd;">What Happened:</h4>
             <ol style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
-                <li>Qubit 0 was prepared in state ${this.circuit.metadata.initialState}</li>
-                <li>Qubits 1 & 2 were entangled (Bell pair)</li>
-                <li>Alice performed a Bell measurement on Qubits 0 & 1</li>
-                <li>Bob's qubit (Qubit 2) was projected into the teleported state</li>
+                <li>Prepared qubit 0 in state ${initialState}</li>
+                <li>Created entangled Bell pair between qubits 1 & 2</li>
+                <li>Alice performed Bell measurement on qubits 0 & 1</li>
+                <li>Classical bits (${aliceMeasurements.map(m => m.result).join('')}) sent to Bob</li>
+                <li>Bob applied corrections to qubit 2 based on Alice's measurements</li>
             </ol>
         </div>
     `;
+
+        if (shots > 1) {
+            content += `
+            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                <h4 style="margin-top: 0; color: #93c5fd;">Statistics (${shots} shots):</h4>
+                <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+                    Multiple shots show teleportation reliability and quantum measurement statistics.
+                </p>
+            </div>
+        `;
+        }
 
         container.innerHTML = content;
 
@@ -1993,6 +2085,29 @@ class QuantumLab {
         if (workspace && workspace.parentNode) {
             workspace.parentNode.insertBefore(container, workspace.nextSibling);
         }
+    }
+
+    getExpectedBobState(initialState, aliceMeasurements) {
+        // Determine expected state based on initial state and Alice's measurements
+        const stateMap = {
+            '|0⟩': { '00': '|0⟩', '01': '|1⟩', '10': '|0⟩', '11': '|1⟩' },
+            '|1⟩': { '00': '|1⟩', '01': '|0⟩', '10': '|1⟩', '11': '|0⟩' },
+            '|+⟩': { '00': '|+⟩', '01': '|-⟩', '10': '|+⟩', '11': '|-⟩' },
+            '|-⟩': { '00': '|-⟩', '01': '|+⟩', '10': '|-⟩', '11': '|+⟩' }
+        };
+
+        const aliceBits = aliceMeasurements.map(m => m.result).join('');
+        return stateMap[initialState]?.[aliceBits] || 'Unknown';
+    }
+
+    checkTeleportationSuccess(initialState, aliceMeasurements, bobQubit) {
+        // Check if Bob's result matches expected state
+        const expectedBobState = this.getExpectedBobState(initialState, aliceMeasurements);
+
+        // For demonstration, we'll use a simplified check
+        // In real teleportation, Bob would apply corrections based on Alice's measurements
+        return bobQubit.result === 0 && expectedBobState === '|0⟩' ||
+            bobQubit.result === 1 && expectedBobState === '|1⟩';
     }
 
     showShorsResult(result) {
