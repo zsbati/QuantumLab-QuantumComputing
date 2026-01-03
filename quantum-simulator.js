@@ -40,26 +40,26 @@ class QuantumCircuit {
         if (params.position !== undefined) {
             // Insert gate at specific position
             const position = params.position;
-            
+
             // Find the correct insertion point based on position
             let insertIndex = this.gates.length;
-            
+
             // Count gates that would appear before this position on any target qubit
             for (let i = 0; i < this.gates.length; i++) {
                 const existingGate = this.gates[i];
                 // Handle both quantum gates (params.position) and classical gates (position)
                 const existingPosition = existingGate.params?.position || existingGate.position || i;
-                
+
                 // Check if existing gate overlaps with target qubits and comes before desired position
                 const existingGateQubits = existingGate.targetQubits || existingGate.inputQubits || [];
-                if (existingGateQubits.some(q => targetQubits.includes(q)) && 
+                if (existingGateQubits.some(q => targetQubits.includes(q)) &&
                     existingPosition < position) {
                     insertIndex = i + 1;
                 } else if (existingPosition >= position) {
                     break;
                 }
             }
-            
+
             // Insert gate at calculated position
             this.gates.splice(insertIndex, 0, gate);
         } else {
@@ -101,7 +101,7 @@ class QuantumCircuit {
         console.log('=== EXECUTE SINGLE SHOT ===');
         console.log('Input state before execution:', this.state.toString());
         console.log('Input state amplitudes:', this.state.amplitudes.map(a => a.toString()));
-        
+
         const result = {
             initialState: this.state.clone(),
             finalState: null,
@@ -112,7 +112,7 @@ class QuantumCircuit {
         // Apply all gates
         for (const gate of this.gates) {
             const beforeState = this.state.clone();
-            
+
             // Handle classical gates differently
             if (gate.type === 'classical') {
                 this.applyClassicalGate(gate);
@@ -152,49 +152,49 @@ class QuantumCircuit {
         // Classical gate execution - works on definite bit values
         const numQubits = this.state.numQubits;
         const dimension = Math.pow(2, numQubits);
-        
+
         console.log(`Applying classical gate ${gate.name} to state:`, this.state.amplitudes.map(a => a.toString()));
-        
+
         if (gate.name === 'NOT') {
             // NOT gate: flip single bit
             const inputQubit = gate.inputQubits[0];
             const outputQubit = gate.outputQubit;
-            
+
             console.log(`NOT gate: input qubit=${inputQubit}, output qubit=${outputQubit}`);
-            
+
             // Create new amplitudes array
             const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
-            
+
             // For each basis state, flip the bit and move amplitude
             for (let i = 0; i < dimension; i++) {
                 const inputBit = (i >> (numQubits - 1 - inputQubit)) & 1;
                 const flippedBit = 1 - inputBit;
-                
+
                 // Calculate new state index with flipped bit
                 let newStateIndex = i;
                 if (flippedBit !== ((i >> (numQubits - 1 - outputQubit)) & 1)) {
                     newStateIndex = i ^ (1 << (numQubits - 1 - outputQubit));
                 }
-                
+
                 newAmplitudes[newStateIndex] = this.state.amplitudes[i].clone();
                 console.log(`State ${i.toString(2).padStart(numQubits, '0')}: inputBit=${inputBit}, flippedBit=${flippedBit}, newIndex=${newStateIndex.toString(2).padStart(numQubits, '0')}`);
             }
-            
+
             this.state.amplitudes = newAmplitudes;
             console.log(`NOT gate result:`, this.state.amplitudes.map(a => a.toString()));
-            
+
         } else if (gate.name === 'AND') {
             // AND gate: output = input1 AND input2 (measurement-based approach)
             const inputQubit1 = gate.inputQubits[0];
             const inputQubit2 = gate.inputQubits[1];
             const outputQubit = gate.outputQubit;
-            
+
             console.log(`AND gate: input qubits=[${inputQubit1}, ${inputQubit2}], output qubit=${outputQubit}`);
-            
+
             // For definite states (like |00⟩, |01⟩, |10⟩, |11⟩), just apply classical logic
             const numQubits = this.state.numQubits;
             const dimension = Math.pow(2, numQubits);
-            
+
             // Find which basis state we're in
             let stateIndex = -1;
             for (let i = 0; i < dimension; i++) {
@@ -203,31 +203,31 @@ class QuantumCircuit {
                     break;
                 }
             }
-            
+
             if (stateIndex >= 0) {
                 // Extract bit values
                 const bit1 = (stateIndex >> (numQubits - 1 - inputQubit1)) & 1;
                 const bit2 = (stateIndex >> (numQubits - 1 - inputQubit2)) & 1;
                 const andResult = bit1 & bit2;
-                
+
                 console.log(`AND gate: state=${stateIndex.toString(2).padStart(numQubits, '0')}, bit1=${bit1}, bit2=${bit2}, andResult=${andResult}`);
-                
+
                 // Create new state with AND result
                 const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
-                
+
                 // Build target state index: same as input but with AND result on output qubit
                 let targetIndex = stateIndex;
                 const outputBitMask = 1 << (numQubits - 1 - outputQubit);
                 const andResultMask = andResult << (numQubits - 1 - outputQubit);
-                
+
                 // Clear the output bit position
                 targetIndex = targetIndex & ~outputBitMask;
                 // Set the AND result on the output bit position
                 targetIndex = targetIndex | andResultMask;
-                
+
                 newAmplitudes[targetIndex] = new Complex(1, 0);
                 this.state.amplitudes = newAmplitudes;
-                
+
                 console.log(`AND gate result: state ${targetIndex.toString(2).padStart(numQubits, '0')}`);
             }
         } else if (gate.name === 'OR') {
@@ -235,13 +235,13 @@ class QuantumCircuit {
             const inputQubit1 = gate.inputQubits[0];
             const inputQubit2 = gate.inputQubits[1];
             const outputQubit = gate.outputQubit;
-            
+
             console.log(`OR gate: input qubits=[${inputQubit1}, ${inputQubit2}], output qubit=${outputQubit}`);
-            
+
             // For definite states (like |00⟩, |01⟩, |10⟩, |11⟩), just apply classical logic
             const numQubits = this.state.numQubits;
             const dimension = Math.pow(2, numQubits);
-            
+
             // Find which basis state we're in
             let stateIndex = -1;
             for (let i = 0; i < dimension; i++) {
@@ -250,31 +250,31 @@ class QuantumCircuit {
                     break;
                 }
             }
-            
+
             if (stateIndex >= 0) {
                 // Extract bit values
                 const bit1 = (stateIndex >> (numQubits - 1 - inputQubit1)) & 1;
                 const bit2 = (stateIndex >> (numQubits - 1 - inputQubit2)) & 1;
                 const orResult = bit1 | bit2;
-                
+
                 console.log(`OR gate: state=${stateIndex.toString(2).padStart(numQubits, '0')}, bit1=${bit1}, bit2=${bit2}, orResult=${orResult}`);
-                
+
                 // Create new state with OR result
                 const newAmplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
-                
+
                 // Build target state index: same as input but with OR result on output qubit
                 let targetIndex = stateIndex;
                 const outputBitMask = 1 << (numQubits - 1 - outputQubit);
                 const orResultMask = orResult << (numQubits - 1 - outputQubit);
-                
+
                 // Clear the output bit position
                 targetIndex = targetIndex & ~outputBitMask;
                 // Set the OR result on the output bit position
                 targetIndex = targetIndex | orResultMask;
-                
+
                 newAmplitudes[targetIndex] = new Complex(1, 0);
                 this.state.amplitudes = newAmplitudes;
-                
+
                 console.log(`OR gate result: state ${targetIndex.toString(2).padStart(numQubits, '0')}`);
             }
         }
@@ -284,58 +284,58 @@ class QuantumCircuit {
         // Measure multiple qubits jointly to preserve quantum correlation
         const numQubits = this.state.numQubits;
         const dimension = Math.pow(2, numQubits);
-        
+
         // Calculate probabilities for each basis state
         const probabilities = [];
         for (let i = 0; i < dimension; i++) {
             const probability = this.state.amplitudes[i].magnitude() * this.state.amplitudes[i].magnitude();
             probabilities.push(probability);
         }
-        
+
         // Random measurement based on actual state probabilities
         const random = Math.random();
         let cumulative = 0;
-        
+
         for (let i = 0; i < dimension; i++) {
             cumulative += probabilities[i];
             if (random < cumulative) {
                 // Collapse to measured state
                 this.state.amplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
                 this.state.amplitudes[i] = new Complex(1, 0);
-                
+
                 // Extract bit values for each qubit
                 const result = {};
                 for (const qubit of qubits) {
                     result[qubit] = (i >> (numQubits - 1 - qubit)) & 1;
                 }
-                
+
                 console.log(`Measured state ${i.toString(2).padStart(numQubits, '0')}, qubits:`, result);
                 return result;
             }
         }
-        
+
         // Fallback (shouldn't happen)
         const lastIndex = dimension - 1;
         this.state.amplitudes = Array(dimension).fill().map(() => new Complex(0, 0));
         this.state.amplitudes[lastIndex] = new Complex(1, 0);
-        
+
         const result = {};
         for (const qubit of qubits) {
             result[qubit] = (lastIndex >> (numQubits - 1 - qubit)) & 1;
         }
-        
+
         return result;
     }
-    
+
     prepareQubitState(qubit, value) {
         // Prepare a specific qubit in |0⟩ or |1⟩ state
         const numQubits = this.state.numQubits;
         const dimension = Math.pow(2, numQubits);
-        
+
         // Create new amplitudes with the target qubit in the desired state
         const newAmplitudes = this.state.amplitudes.map((amp, index) => {
             const bitValue = (index >> (numQubits - 1 - qubit)) & 1;
-            
+
             if (bitValue === value) {
                 // This amplitude should remain unchanged
                 return amp.clone();
@@ -344,17 +344,17 @@ class QuantumCircuit {
                 return new Complex(0, 0);
             }
         });
-        
+
         // Check if we created a zero vector and fix it
         const hasNonZero = newAmplitudes.some(amp => amp.magnitude() > 1e-10);
         if (!hasNonZero) {
             console.log('Created zero vector, keeping original state');
             return; // Don't update if it would create zero vector
         }
-        
+
         this.state.amplitudes = newAmplitudes;
     }
-    
+
     measureQubit(qubit) {
         // Get probabilities for measuring this specific qubit
         let probabilities = this.getQubitProbabilities(qubit);
@@ -551,14 +551,14 @@ class CircuitBuilder {
 // Pre-built Quantum Algorithms
 class QuantumAlgorithms {
     static DeutschJozsa(config = {}) {
-        const { 
-            numQubits = 2, 
+        const {
+            numQubits = 2,
             functionType = 'constant',  // 'constant' or 'balanced'
             constantValue = 0,          // 0 or 1 for constant functions
             balancedType = 'first-bit', // 'first-bit', 'parity', 'custom'
             customInputs = null          // Array of input indices where f(x) = 1
         } = config;
-        
+
         const circuit = new QuantumCircuit(numQubits);
 
         // Initialize qubits: first n-1 for input, last for ancilla
@@ -590,7 +590,7 @@ class QuantumAlgorithms {
             } else if (balancedType === 'custom' && customInputs) {
                 // Custom balanced function using multi-controlled gates
                 const inputQubits = numQubits - 1;
-                
+
                 // For each input where f(x) = 1, apply a multi-controlled X
                 customInputs.forEach(inputIndex => {
                     // Create multi-controlled X gate
@@ -605,7 +605,7 @@ class QuantumAlgorithms {
                             controls.push(i);
                         }
                     }
-                    
+
                     // Apply multi-controlled X to ancilla
                     if (controls.length === 1) {
                         circuit.addGate('CNOT', [controls[0], numQubits - 1]);
@@ -613,7 +613,7 @@ class QuantumAlgorithms {
                         circuit.addGate('TOFFOLI', [controls[0], controls[1], numQubits - 1]);
                     }
                     // For more controls, would need more complex implementation
-                    
+
                     // Uncompute the X gates
                     for (let i = 0; i < inputQubits; i++) {
                         const bit = (inputIndex >> (inputQubits - 1 - i)) & 1;
@@ -698,7 +698,7 @@ class QuantumAlgorithms {
             searchSpaceSize,
             markedIndex: actualMarkedIndex,
             targetElement: dataset ? dataset[actualMarkedIndex] : actualMarkedIndex,
-            dataset: dataset || Array.from({length: searchSpaceSize}, (_, i) => i),
+            dataset: dataset || Array.from({ length: searchSpaceSize }, (_, i) => i),
             iterations: iterations || Math.floor(Math.PI / 4 * Math.sqrt(searchSpaceSize)),
             description: `Quantum search algorithm that finds ${dataset ? dataset[actualMarkedIndex] : 'element ' + actualMarkedIndex} in ${searchSpaceSize} possibilities using quantum superposition and amplitude amplification`
         };
@@ -873,11 +873,11 @@ class QuantumAlgorithms {
     }
 
     static QuantumTeleportation(config = {}) {
-        const { 
+        const {
             initialState = '|+⟩',  // State to teleport: '|0⟩', '|1⟩', '|+⟩', '|-⟩'
-            numQubits = 3 
+            numQubits = 3
         } = config;
-        
+
         const circuit = new QuantumCircuit(numQubits);
 
         // Prepare the state to be teleported on qubit 0
@@ -913,6 +913,54 @@ class QuantumAlgorithms {
             algorithm: 'Quantum Teleportation',
             initialState,
             description: `Teleports quantum state ${initialState} from qubit 0 to qubit 2 using entanglement`
+        };
+
+        return circuit;
+    }
+
+    static ShorsAlgorithm(config = {}) {
+        const {
+            N = 15,  // Number to factor (default 15 = 3 × 5)
+            a = 2    // Random coprime with N (default 2)
+        } = config;
+
+        // For demonstration, we'll implement a simplified version
+        // Full Shor's requires modular exponentiation circuits
+        const numQubits = 8; // 4 for work register, 4 for control register
+
+        const circuit = new QuantumCircuit(numQubits);
+
+        // Initialize control register in superposition
+        for (let i = 0; i < 4; i++) {
+            circuit.addGate('H', [i]);
+        }
+
+        // Simplified modular exponentiation (placeholder)
+        // In real implementation, this would be controlled-U operations
+        for (let i = 0; i < 4; i++) {
+            circuit.addGate('CNOT', [i, i + 4]);
+        }
+
+        // Apply Quantum Fourier Transform to control register
+        for (let i = 0; i < 4; i++) {
+            circuit.addGate('H', [i]);
+            for (let j = i + 1; j < 4; j++) {
+                const angle = Math.PI / Math.pow(2, j - i);
+                circuit.addGate('CRZ', [i, j], { angle });
+            }
+        }
+
+        // Measure control register
+        for (let i = 0; i < 4; i++) {
+            circuit.addMeasurement(i);
+        }
+
+        // Store metadata
+        circuit.metadata = {
+            algorithm: 'Shor\'s Algorithm',
+            numberToFactor: N,
+            randomBase: a,
+            description: `Quantum period finding for factoring ${N} using base ${a}`
         };
 
         return circuit;

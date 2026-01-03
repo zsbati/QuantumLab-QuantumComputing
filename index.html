@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <header class="header">
         <div class="container">
@@ -169,7 +171,8 @@
                         <h3>Deutsch-Jozsa</h3>
                         <p>Determine if a function is constant or balanced</p>
                         <div class="algorithm-buttons">
-                            <button class="btn btn-outline" onclick="quantumLab.configureDeutschJozsa()">Configure</button>
+                            <button class="btn btn-outline"
+                                onclick="quantumLab.configureDeutschJozsa()">Configure</button>
                             <button class="btn btn-outline">Load Algorithm</button>
                         </div>
                     </div>
@@ -186,13 +189,23 @@
                         <p>Quantum version of discrete Fourier transform</p>
                         <div class="algorithm-buttons">
                             <button class="btn btn-outline" onclick="quantumLab.configureQFT()">Configure</button>
-                            <button class="btn btn-outline" onclick="quantumLab.loadAlgorithm('quantum-fourier')">Load Algorithm</button>
+                            <button class="btn btn-outline" onclick="quantumLab.loadAlgorithm('quantum-fourier')">Load
+                                Algorithm</button>
                         </div>
                     </div>
                     <div class="algorithm-card" data-algorithm="teleportation">
                         <h3>Quantum Teleportation</h3>
                         <p>Transfer quantum state between qubits</p>
                         <button class="btn btn-outline">Load Algorithm</button>
+                    </div>
+                    <div class="algorithm-card" data-algorithm="shors">
+                        <h3>Shor's Algorithm</h3>
+                        <p>Quantum algorithm for integer factorization</p>
+                        <div class="algorithm-buttons">
+                            <button class="btn btn-outline" onclick="quantumLab.configureShors()">Configure</button>
+                            <button class="btn btn-outline" onclick="quantumLab.loadAlgorithm('shors')">Load
+                                Algorithm</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -245,4 +258,5 @@
     <script src="visualization.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>
